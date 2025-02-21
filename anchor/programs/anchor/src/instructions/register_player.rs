@@ -46,8 +46,7 @@ pub fn register_player_handler(
     }
 
     // 1. Transfer entry fee from player to program's treasury wallet.
-    //    (You'll need to define a treasury PDA for the program in the
-    //     create_competition instruction.)
+    
     system_program::transfer(
         CpiContext::new(
             ctx.accounts.system_program.to_account_info(),

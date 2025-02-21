@@ -57,7 +57,7 @@ pub mod trading_competition {
         determine_winner_handler(ctx)
     }
 
-    pub fn close_competition(ctx: Context<CloseCompetition>) -> Result<()> {
-        close_competition_handler(ctx)
+    pub fn close_competition(ctx: Context<CloseCompetition>, competition_id: u32) -> Result<()> {
+        close_competition_handler(ctx, competition_id)
     }
 }

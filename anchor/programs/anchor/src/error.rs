@@ -14,4 +14,6 @@ pub enum ErrorCodes {
     IncorrectMint,
     #[msg("Player already participating in another competition")]
     AlreadyParticipant,
+    #[msg("Competition not ended yet!")]
+    CompetitionNotEnded,
 }
