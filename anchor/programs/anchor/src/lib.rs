@@ -1,12 +1,14 @@
 use anchor_lang::prelude::*;
 
+pub mod error;
 pub mod instructions;
 pub mod state;
 
+pub use error::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("5o3NtP3cm4YbGw6oFXg7fZK2TiZqHnuDGfVxdZrv4CwB"); // Replace with your program ID
+declare_id!("8anojotqXVFWsPFZqnDfNMLM1Do864kgK4wQbsk6gzh3");
 
 #[program]
 pub mod trading_competition {
@@ -18,17 +20,32 @@ pub mod trading_competition {
 
     pub fn create_competition(
         ctx: Context<CreateCompetition>,
+        id: u32,
         entry_fee: u64,
         base_amount: u64,
         start_time: i64,
+        winning_amount: u64,
         end_time: i64,
-        category: String,
+        category: CompetitionCategory,
     ) -> Result<()> {
-        create_competition_handler(ctx, entry_fee, base_amount, start_time, end_time, category)
+        create_competition_handler(
+            ctx,
+            id,
+            entry_fee,
+            base_amount,
+            start_time,
+            winning_amount,
+            end_time,
+            category,
+        )
     }
 
-    pub fn register_player(ctx: Context<RegisterPlayer>) -> Result<()> {
-        register_player_handler(ctx)
+    pub fn register_player(
+        ctx: Context<RegisterPlayer>,
+        competition_id: u32,
+        current_balance: u64,
+    ) -> Result<()> {
+        register_player_handler(ctx, competition_id, current_balance)
     }
 
     // We can do this maybe in upcoming versions
