@@ -43,9 +43,9 @@ pub mod trading_competition {
     pub fn register_player(
         ctx: Context<RegisterPlayer>,
         competition_id: u32,
-        current_balance: u64,
+        current_usdt_balance: u64,
     ) -> Result<()> {
-        register_player_handler(ctx, competition_id, current_balance)
+        register_player_handler(ctx, competition_id, current_usdt_balance)
     }
 
     // We can do this maybe in upcoming versions

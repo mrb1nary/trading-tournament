@@ -40,6 +40,7 @@ pub fn create_competition_handler(
         CompetitionCategory::TwelvePlayers => 12,
         CompetitionCategory::TwentyFivePlayers => 25,
     };
+    
     competition.bump = ctx.bumps.competition;
 
     Ok(())
