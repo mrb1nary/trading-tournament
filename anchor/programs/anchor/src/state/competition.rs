@@ -1,12 +1,13 @@
 use anchor_lang::prelude::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone, PartialEq, Eq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone, PartialEq, Eq, InitSpace)]
 pub enum CompetitionCategory {
     SixPlayers,
     TwelvePlayers,
     TwentyFivePlayers,
 }
 #[account]
+#[derive(InitSpace)]
 pub struct Competition {
     pub authority: Pubkey,
     pub id: u32,

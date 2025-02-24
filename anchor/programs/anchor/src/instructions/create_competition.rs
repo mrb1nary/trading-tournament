@@ -7,7 +7,7 @@ use crate::state::competition::*;
 pub struct CreateCompetition<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
-    #[account(init,payer = authority,space = 8 + 32 + 8 + 8 + 8 + 1 + 1 + 32 + 1 + 1,seeds = [id.to_le_bytes().as_ref()],bump)]
+    #[account(init, payer = authority, space = 8+Competition::INIT_SPACE, seeds = [&id.to_le_bytes()], bump)]
     pub competition: Account<'info, Competition>,
     pub system_program: Program<'info, System>,
 }
@@ -40,7 +40,7 @@ pub fn create_competition_handler(
         CompetitionCategory::TwelvePlayers => 12,
         CompetitionCategory::TwentyFivePlayers => 25,
     };
-    
+
     competition.bump = ctx.bumps.competition;
 
     Ok(())

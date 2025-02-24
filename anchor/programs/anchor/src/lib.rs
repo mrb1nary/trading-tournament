@@ -8,7 +8,7 @@ pub use error::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("8anojotqXVFWsPFZqnDfNMLM1Do864kgK4wQbsk6gzh3");
+declare_id!("1wSNjNqx37H5y3F9nA3JejzBDw3eCDE6hqpD6fEYg33");
 
 #[program]
 pub mod trading_competition {
@@ -53,8 +53,8 @@ pub mod trading_competition {
         report_trade_handler(ctx)
     }
 
-    pub fn determine_winner(ctx: Context<DetermineWinner>) -> Result<()> {
-        determine_winner_handler(ctx)
+    pub fn determine_winner(ctx: Context<DetermineWinner>, winning_amount: u64) -> Result<()> {
+        determine_winner_handler(ctx, winning_amount)
     }
 
     pub fn close_competition(ctx: Context<CloseCompetition>, competition_id: u32) -> Result<()> {
