@@ -1,11 +1,10 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Token, TokenAccount, Transfer, Mint};
 use anchor_spl::associated_token::{create, AssociatedToken};
+use anchor_spl::token::{Mint, Token, TokenAccount, Transfer};
 
 use crate::error::ErrorCodes;
 
 use crate::state::*;
-
 
 const EXPECTED_USDT_MINT: &str = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
 
@@ -14,7 +13,7 @@ const EXPECTED_USDT_MINT: &str = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
 pub struct CloseCompetition<'info> {
     #[account(
         mut,
-        seeds = [competition_id.to_le_bytes().as_ref()],
+        seeds = [&competition_id.to_le_bytes()],
         bump = competition.bump,
         close = authority,
         constraint = competition.payout_claimed == true,
@@ -78,7 +77,10 @@ pub fn close_competition_handler(
 
         anchor_spl::token::transfer(cpi_context, remaining_usdt_amount)?;
 
-        msg!("Transferred {} USDT to master treasury", remaining_usdt_amount);
+        msg!(
+            "Transferred {} USDT to master treasury",
+            remaining_usdt_amount
+        );
     } else {
         msg!("No remaining USDT in the competition's ATA.");
     }
