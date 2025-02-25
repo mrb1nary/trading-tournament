@@ -1,10 +1,9 @@
 use anchor_lang::prelude::*;
-
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::token::{Mint, Token, TokenAccount, Transfer};
 
 use crate::error::ErrorCodes;
-use crate::state::{competition::Competition, player::Player};
+use crate::state::{competition::Competition, player::Player, player_profile::PlayerProfile};
 
 const EXPECTED_USDT_MINT: &str = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"; // USDT MINT address on Solana
 
@@ -35,11 +34,18 @@ pub struct RegisterPlayer<'info> {
     #[account(
         init,
         payer = player,
-        space = 8 + 32 + 32 + 8 + 8 + 1,
+        space = 8 + 4 + 32 + 8 + 8 + 1,
         seeds = [b"player", competition.key().as_ref(), player.key().as_ref()],
         bump
     )]
     pub player_account: Account<'info, Player>,
+
+     #[account(
+        mut,
+        seeds = [b"profile", player.key().as_ref()],
+        bump,
+    )]
+    pub player_profile: Account<'info, PlayerProfile>,
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -53,18 +59,18 @@ pub fn register_player_handler(
 ) -> Result<()> {
     let competition = &mut ctx.accounts.competition;
     let player_account = &mut ctx.accounts.player_account;
+    let player_profile = &mut ctx.accounts.player_profile;
 
     if competition.current_players >= competition.max_players {
         return Err(ErrorCodes::TooManyPlayers.into());
     }
 
-    if player_account.participating_in_other_competition {
+    if player_profile.participating_in_other_competition {
         return Err(ErrorCodes::AlreadyParticipant.into());
     }
 
     // 1. Transfer entry fee from player to the competition's ATA (in USDT).
-
-    let cpi_accounts = anchor_spl::token::Transfer {
+    let cpi_accounts = Transfer {
         from: ctx.accounts.player.to_account_info(),
         to: ctx.accounts.competition_ata.to_account_info(),
         authority: ctx.accounts.player.to_account_info(),
@@ -81,7 +87,7 @@ pub fn register_player_handler(
     player_account.base_balance = competition.base_amount;
     player_account.current_balance = current_usdt_balance;
     player_account.bump = ctx.bumps.player_account;
-    player_account.participating_in_other_competition = true;
+    player_profile.participating_in_other_competition = true;
 
     // 4. Update the competition's player count
     competition.current_players += 1;

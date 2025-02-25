@@ -7,5 +7,5 @@ pub struct Player {
     pub base_balance: u64,
     pub current_balance: u64,
     pub bump: u8,
-    pub participating_in_other_competition: bool,
+    
 }

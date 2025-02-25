@@ -18,6 +18,15 @@ pub mod trading_competition {
         initialize_handler(ctx)
     }
 
+    pub fn signup_player(
+        ctx: Context<Signup>,
+        player_name: String,
+        player_email: String,
+        player_dob: String,
+    ) -> Result<()> {
+        signup_player_handler(ctx, player_name, player_email, player_dob)
+    }
+
     pub fn create_competition(
         ctx: Context<CreateCompetition>,
         id: u32,

@@ -16,4 +16,10 @@ pub enum ErrorCodes {
     AlreadyParticipant,
     #[msg("Competition not ended yet!")]
     CompetitionNotEnded,
+    #[msg("Player name is too long. Maximum length is 20 characters.")]
+    PlayerNameTooLong,
+    #[msg("Player email is too long. Maximum length is 30 characters.")]
+    PlayerEmailTooLong,
+    #[msg("Player date of birth is too long. Maximum length is 10 characters.")]
+    PlayerDobTooLong,
 }

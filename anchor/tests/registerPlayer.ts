@@ -12,6 +12,7 @@ describe("TradingCompetition", () => {
   const program = anchor.workspace
     .TradingCompetition as Program<TradingCompetition>;
   const user = (provider.wallet as anchor.Wallet).payer;
+  const payer = web3.Keypair.generate();
 
   const competitionId = 1; // Example competition ID (u32)
   const entryFee = new anchor.BN(100); // Example entry fee (u64)
@@ -36,11 +37,11 @@ describe("TradingCompetition", () => {
     // Create USDT mint for testing
     usdtMint = await createMint(
       provider.connection,
-      user,
+      payer,
       user.publicKey,
       null,
       6,
-      TOKEN_PROGRAM_ID
+      payer
     );
 
     // Derive player account PDA

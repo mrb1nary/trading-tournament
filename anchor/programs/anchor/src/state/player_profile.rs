@@ -10,6 +10,7 @@ pub struct PlayerProfile {
     pub player_email: String,
     #[max_len(10)]
     pub player_dob: String, // Storing as String for simplicity; consider more robust date handling
+    pub participating_in_other_competition: bool,
 }
 
 const MAX_PLAYER_NAME_LENGTH: usize = 20;
