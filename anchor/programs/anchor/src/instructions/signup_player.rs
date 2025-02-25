@@ -3,14 +3,13 @@ use anchor_lang::prelude::*;
 use crate::ErrorCodes;
 use crate::PlayerProfile;
 
-
 #[derive(Accounts)]
 pub struct Signup<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
     #[account(
-        init,
+        init_if_needed,
         payer = signer,
         space = PlayerProfile::INIT_SPACE,
         seeds = [b"profile", signer.key().as_ref()],
@@ -33,7 +32,7 @@ pub fn signup_player_handler(
         return Err(error!(ErrorCodes::PlayerNameTooLong));
     }
 
-    if player_email.len() > 30 {
+    if player_email.len() > 50 {
         return Err(error!(ErrorCodes::PlayerEmailTooLong));
     }
 
@@ -50,5 +49,3 @@ pub fn signup_player_handler(
 
     Ok(())
 }
-
-

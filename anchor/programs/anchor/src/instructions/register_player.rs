@@ -11,17 +11,27 @@ const EXPECTED_USDT_MINT: &str = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
 #[instruction(competition_id: u32)]
 pub struct RegisterPlayer<'info> {
     #[account(mut,
-        seeds = [competition_id.to_le_bytes().as_ref()],
+        seeds = [&competition_id.to_le_bytes()],
         bump = competition.bump
     )]
     pub competition: Account<'info, Competition>,
+
     #[account(mut)]
     pub player: Signer<'info>,
-    /// CHECK: The USDT mint address for the competition
-    #[account(mut, constraint = usdt_mint.key() == Pubkey::try_from(EXPECTED_USDT_MINT).unwrap())]
+
+    // #[account(mut, constraint = usdt_mint.key() == Pubkey::try_from(EXPECTED_USDT_MINT).unwrap())]
+    #[account(mut)]
     pub usdt_mint: Account<'info, Mint>,
 
-    // Create an ATA for the competition account
+    // Player's Associated Token Account (ATA)
+    #[account(
+        mut,
+        associated_token::mint = usdt_mint,
+        associated_token::authority = player
+    )]
+    pub player_ata: Account<'info, TokenAccount>,
+
+    // Competition's Associated Token Account (ATA)
     #[account(
         init_if_needed,
         payer = player,
@@ -40,7 +50,7 @@ pub struct RegisterPlayer<'info> {
     )]
     pub player_account: Account<'info, Player>,
 
-     #[account(
+    #[account(
         mut,
         seeds = [b"profile", player.key().as_ref()],
         bump,
@@ -61,35 +71,39 @@ pub fn register_player_handler(
     let player_account = &mut ctx.accounts.player_account;
     let player_profile = &mut ctx.accounts.player_profile;
 
+    // Check if competition has reached max players
     if competition.current_players >= competition.max_players {
         return Err(ErrorCodes::TooManyPlayers.into());
     }
 
+    // Check if player is already participating in another competition
     if player_profile.participating_in_other_competition {
         return Err(ErrorCodes::AlreadyParticipant.into());
     }
 
-    // 1. Transfer entry fee from player to the competition's ATA (in USDT).
+    // Transfer entry fee from player's ATA to competition's ATA
     let cpi_accounts = Transfer {
-        from: ctx.accounts.player.to_account_info(),
+        from: ctx.accounts.player_ata.to_account_info(),
         to: ctx.accounts.competition_ata.to_account_info(),
         authority: ctx.accounts.player.to_account_info(),
     };
 
     let cpi_context = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts);
 
-    // Assuming entry_fee is in USDT and already set in the competition account
+    // Transfer entry fee (in USDT)
     anchor_spl::token::transfer(cpi_context, competition.entry_fee)?;
 
-    // 3. Initialize the Player Account
+    // Initialize the Player Account
     player_account.competition_id = competition_id;
     player_account.player = ctx.accounts.player.key();
     player_account.base_balance = competition.base_amount;
     player_account.current_balance = current_usdt_balance;
     player_account.bump = ctx.bumps.player_account;
+
+    // Mark the player's profile as participating in another competition
     player_profile.participating_in_other_competition = true;
 
-    // 4. Update the competition's player count
+    // Increment the number of players in the competition
     competition.current_players += 1;
 
     msg!(

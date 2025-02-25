@@ -6,7 +6,7 @@ pub struct PlayerProfile {
     #[max_len(20)]
     pub player_name: String,
     pub player_wallet_address: Pubkey,
-    #[max_len(30)]
+    #[max_len(50)]
     pub player_email: String,
     #[max_len(10)]
     pub player_dob: String, // Storing as String for simplicity; consider more robust date handling
@@ -14,7 +14,7 @@ pub struct PlayerProfile {
 }
 
 const MAX_PLAYER_NAME_LENGTH: usize = 20;
-const MAX_PLAYER_EMAIL_LENGTH: usize = 30;
+const MAX_PLAYER_EMAIL_LENGTH: usize = 50;
 const MAX_PLAYER_DOB_LENGTH: usize = 10;
 
 impl PlayerProfile {
