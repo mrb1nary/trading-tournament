@@ -12,7 +12,7 @@ describe("TradingCompetition", () => {
     .TradingCompetition as Program<TradingCompetition>;
   const user = (provider.wallet as anchor.Wallet).payer;
 
-  const competitionId = 1; // Example competition ID (u32)
+  const competitionId = 7; // Example competition ID (u32)
   const entryFee = new anchor.BN(100); // Example entry fee (u64)
   const baseAmount = new anchor.BN(50); // Example base amount (u64)
   const startTime = new anchor.BN(Math.floor(Date.now() / 1000)); // Current time in seconds (i64)

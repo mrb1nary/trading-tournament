@@ -22,4 +22,6 @@ pub enum ErrorCodes {
     PlayerEmailTooLong,
     #[msg("Player date of birth is too long. Maximum length is 10 characters.")]
     PlayerDobTooLong,
+    #[msg("Incorrect Authority")]
+    IncorrectAuthority,
 }

@@ -62,8 +62,13 @@ pub mod trading_competition {
         report_trade_handler(ctx)
     }
 
-    pub fn determine_winner(ctx: Context<DetermineWinner>, winning_amount: u64) -> Result<()> {
-        determine_winner_handler(ctx, winning_amount)
+    pub fn determine_winner(
+        ctx: Context<DetermineWinner>,
+        competition_id: u32,
+        winner_key: Pubkey,
+        winning_amount: u64,
+    ) -> Result<()> {
+        determine_winner_handler(ctx, competition_id, winner_key, winning_amount)
     }
 
     pub fn close_competition(ctx: Context<CloseCompetition>, competition_id: u32) -> Result<()> {
