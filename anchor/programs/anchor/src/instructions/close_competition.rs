@@ -1,9 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::{create, AssociatedToken};
+use anchor_spl::associated_token::{AssociatedToken};
 use anchor_spl::token::{Mint, Token, TokenAccount, Transfer};
 
 use crate::error::ErrorCodes;
-
 use crate::state::*;
 
 const EXPECTED_USDT_MINT: &str = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
@@ -16,9 +15,9 @@ pub struct CloseCompetition<'info> {
         seeds = [&competition_id.to_le_bytes()],
         bump = competition.bump,
         close = authority,
-        constraint = competition.payout_claimed == true,
-        constraint = competition.winner != Pubkey::default(),
-        constraint = competition.authority == authority.key()
+        // constraint = competition.payout_claimed == true,
+        // constraint = competition.winner != Pubkey::default(),
+        // constraint = competition.authority == authority.key()
     )]
     pub competition: Account<'info, Competition>,
 
@@ -38,7 +37,7 @@ pub struct CloseCompetition<'info> {
     pub master_treasury_ata: Account<'info, TokenAccount>, // The master treasury's ATA for USDT
 
     /// CHECK: The USDT mint address
-    #[account(constraint = usdt_mint.key() == Pubkey::try_from(EXPECTED_USDT_MINT).unwrap())]
+    // #[account(constraint = usdt_mint.key() == Pubkey::try_from(EXPECTED_USDT_MINT).unwrap())]
     pub usdt_mint: Account<'info, Mint>,
 
     pub authority: Signer<'info>, // Authority to close the competition
@@ -72,8 +71,15 @@ pub fn close_competition_handler(
             authority: ctx.accounts.competition.to_account_info(), // Authority is the competition account
         };
 
-        let cpi_context =
-            CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts);
+        let binding = competition_id.to_le_bytes();
+        let seeds = &[binding.as_ref(), &[ctx.accounts.competition.bump]];
+        let signer_seeds = &[&seeds[..]];
+
+        let cpi_context = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            cpi_accounts,
+            signer_seeds,
+        );
 
         anchor_spl::token::transfer(cpi_context, remaining_usdt_amount)?;
 

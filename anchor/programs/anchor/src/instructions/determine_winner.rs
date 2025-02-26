@@ -68,12 +68,17 @@ pub fn determine_winner_handler(
     if ctx.accounts.competition_ata.key() != expected_competition_ata {
         return Err(ErrorCodes::InvalidATA.into());
     }
-    //  verify authority
+
+    // Verify authority
     if competition.authority != ctx.accounts.authority.key() {
         return Err(ErrorCodes::IncorrectAuthority.into());
     }
 
-    // 1.  Transfer winning amount to the winner's ATA
+    // Set winner and mark payout as claimed before transferring tokens
+    competition.winner = winner_profile_key;
+    competition.payout_claimed = true;
+
+    // 1. Transfer winning amount to the winner's ATA
     let cpi_accounts = Transfer {
         from: ctx.accounts.competition_ata.to_account_info(),
         to: ctx.accounts.winner_ata.to_account_info(),
@@ -90,9 +95,6 @@ pub fn determine_winner_handler(
         signer_seeds,
     );
 
-    competition.payout_claimed = true;
-    competition.winner = winner_profile_key;
-
     anchor_spl::token::transfer(cpi_context, winning_amount)?;
 
     msg!(
@@ -100,9 +102,6 @@ pub fn determine_winner_handler(
         winning_amount,
         ctx.accounts.winner_profile.key()
     );
-
-    msg!("Winner set: {}", competition.winner);
-    msg!("Payout Claimed: {}", competition.payout_claimed);
 
     Ok(())
 }
