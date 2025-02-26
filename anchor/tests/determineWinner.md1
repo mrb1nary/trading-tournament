@@ -1,0 +1,229 @@
+import * as anchor from "@coral-xyz/anchor";
+import { Program } from "@coral-xyz/anchor";
+import { assert } from "chai";
+import { TradingCompetition } from "../target/types/trading_competition";
+import * as web3 from "@solana/web3.js";
+import {
+  createAssociatedTokenAccount,
+  mintTo,
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  createMint,
+} from "@solana/spl-token";
+
+describe("TradingCompetition - Determine Winner", () => {
+  const provider = anchor.AnchorProvider.env();
+  anchor.setProvider(provider);
+  const connection = provider.connection;
+  const program = anchor.workspace
+    .TradingCompetition as Program<TradingCompetition>;
+  const user = (provider.wallet as anchor.Wallet).payer;
+
+  const competitionId = 1;
+  const entryFee = new anchor.BN(100);
+  const baseAmount = new anchor.BN(50);
+  const winningAmountBN = new anchor.BN(1000); // Use anchor.BN for winning amount
+  const winningAmount = 1000; //  winning amount
+  const category = { sixPlayers: {} };
+
+  let competitionPDA: web3.PublicKey;
+  let usdtMint: web3.PublicKey;
+  let competitionATA: web3.PublicKey;
+  let playerProfilePDA: web3.PublicKey;
+  let winnerProfileKey: web3.PublicKey;
+  let winnerATA: web3.PublicKey;
+
+  let startTime: anchor.BN;
+  let endTime: anchor.BN;
+
+  before(async () => {
+    startTime = new anchor.BN(Math.floor(Date.now() / 1000));
+    endTime = startTime.add(new anchor.BN(1001)); // Competition ends in 1 hour
+
+    try {
+      // Create USDT mint
+      usdtMint = await createMint(
+        connection,
+        user, // payer
+        user.publicKey, // mint authority
+        null, // freeze authority
+        6 // number of decimals
+      );
+
+      // Derive the PDA for the competition
+      [competitionPDA] = await web3.PublicKey.findProgramAddressSync(
+        [Buffer.from(new anchor.BN(competitionId).toArray("le", 4))],
+        program.programId
+      );
+
+      console.log("Competition PDA:", competitionPDA.toBase58());
+
+      // Create the competition
+      await program.methods
+        .createCompetition(
+          competitionId, // Competition ID
+          entryFee,
+          baseAmount,
+          startTime,
+          winningAmountBN,
+          endTime,
+          category
+        )
+        .accounts({
+          authority: user.publicKey,
+          competition: competitionPDA,
+          systemProgram: web3.SystemProgram.programId,
+        })
+        .signers([user])
+        .rpc();
+
+      console.log(`Competition created successfully.`);
+
+      // Create player profile before registering in competition
+      const playerName = "Test Player";
+      const playerEmail = "test@example.com";
+      const playerDob = "01/01/1990";
+
+      [playerProfilePDA] = await web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("profile"), user.publicKey.toBuffer()],
+        program.programId
+      );
+
+      await program.methods
+        .signupPlayer(playerName, playerEmail, playerDob)
+        .accounts({
+          signer: user.publicKey,
+          playerProfile: playerProfilePDA,
+          systemProgram: web3.SystemProgram.programId,
+        })
+        .signers([user])
+        .rpc();
+
+      console.log("Player Profile created!");
+
+      // Create associated token account for the competition
+      competitionATA = await createAssociatedTokenAccount(
+        connection,
+        user,
+        usdtMint, // Mint address
+        competitionPDA,
+        undefined, // Optional: ConfirmOptions
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID,
+        true // Set allowOwnerOffCurve to true
+      );
+
+      console.log("Competition ATA:", competitionATA.toBase58());
+
+      // Mint some USDT to the competition ATA for testing purposes
+      await mintTo(
+        program.provider.connection,
+        user,
+        usdtMint,
+        competitionATA,
+        user.publicKey, // Mint authority is the user in this test setup
+        2000, // Minting 2000 tokens for testing purposes
+        [],
+        undefined,
+        TOKEN_PROGRAM_ID
+      );
+      console.log("Minted USDT to Competition ATA");
+
+      // Setup for determine winner test
+      winnerProfileKey = user.publicKey; // Using the test user as the winner
+
+      winnerATA = await createAssociatedTokenAccount(
+        connection,
+        user,
+        usdtMint, // Mint address
+        playerProfilePDA, // Winner's profile PDA (authority for ATA)
+        undefined, // Optional confirm options
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+    } catch (error) {
+      console.error("Error in before hook:", error);
+    }
+  });
+
+  it("Fails to determine the winner before the end time", async () => {
+    try {
+      await program.methods
+        .determineWinner(
+          competitionId,
+          winnerProfileKey,
+          new anchor.BN(winningAmount)
+        ) // Correct arguments
+        .accounts({
+          competition: competitionPDA,
+          authority: user.publicKey,
+          winnerProfile: playerProfilePDA, // Winner's profile PDA
+          winnerAta: winnerATA, // Winner's ATA for USDT mint
+          competitionAta: competitionATA, // Competition's ATA holding USDT tokens
+          usdtMint: usdtMint, // USDT mint address
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: web3.SystemProgram.programId,
+        })
+        .signers([user])
+        .rpc();
+
+      assert.fail("Expected error not thrown");
+    } catch (error) {
+      assert.isTrue(
+        error.message.includes("The competition has not ended yet."),
+        `Unexpected error message received: ${error.message}`
+      );
+    }
+  });
+
+  it("Waits for the competition to end and determines the winner", async () => {
+    console.log("Waiting for the competition to end...");
+    await new Promise((resolve) => setTimeout(resolve, 3700 * 1000)); // Wait more than 1 hour
+
+    try {
+      await program.methods
+        .determineWinner(
+          competitionId,
+          winnerProfileKey,
+          new anchor.BN(winningAmount)
+        ) // Correct arguments
+        .accounts({
+          competition: competitionPDA,
+          authority: user.publicKey,
+          winnerProfile: playerProfilePDA, // Winner's profile PDA
+          winnerAta: winnerATA, // Winner's ATA for USDT mint
+          competitionAta: competitionATA, // Competition's ATA holding USDT tokens
+          usdtMint: usdtMint, // USDT mint address
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: web3.SystemProgram.programId,
+        })
+        .signers([user])
+        .rpc();
+
+      console.log("DetermineWinner transaction succeeded!");
+    } catch (error) {
+      console.error("DetermineWinner transaction failed:", error);
+      assert.fail("DetermineWinner transaction failed unexpectedly");
+    }
+
+    const winnerAtaBalanceInfo = await connection.getTokenAccountBalance(
+      winnerATA
+    );
+    assert.equal(
+      parseInt(winnerAtaBalanceInfo.value.amount),
+      winningAmount,
+      "Winner's ATA balance is incorrect after determining the winner"
+    );
+
+    const competitionAtaBalanceInfo = await connection.getTokenAccountBalance(
+      competitionATA
+    );
+    assert.equal(
+      parseInt(competitionAtaBalanceInfo.value.amount),
+      2000 - winningAmount,
+      "Competition's ATA balance is incorrect after determining the winner"
+    );
+  });
+});

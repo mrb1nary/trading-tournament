@@ -6,6 +6,9 @@ pub enum CompetitionCategory {
     TwelvePlayers,
     TwentyFivePlayers,
 }
+
+const MAX_PARTICIPANTS: usize = 25; // Adjust as needed
+
 #[account]
 #[derive(InitSpace)]
 pub struct Competition {
@@ -22,4 +25,7 @@ pub struct Competition {
     pub winner: Pubkey,
     pub payout_claimed: bool,
     pub bump: u8,
+
+    // Fixed-size array to hold participant public keys
+    pub participants: [Pubkey; MAX_PARTICIPANTS], // Array to store participant public keys
 }

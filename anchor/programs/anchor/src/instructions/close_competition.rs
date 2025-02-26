@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::{AssociatedToken};
+use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{Mint, Token, TokenAccount, Transfer};
 
 use crate::error::ErrorCodes;
@@ -15,16 +15,16 @@ pub struct CloseCompetition<'info> {
         seeds = [&competition_id.to_le_bytes()],
         bump = competition.bump,
         close = authority,
-        // constraint = competition.payout_claimed == true,
-        // constraint = competition.winner != Pubkey::default(),
-        // constraint = competition.authority == authority.key()
+        constraint = competition.payout_claimed == true,
+        constraint = competition.winner != Pubkey::default(),
+        constraint = competition.authority == authority.key()
     )]
     pub competition: Account<'info, Competition>,
 
     #[account(mut)]
     pub competition_ata: Account<'info, TokenAccount>, // The competition's ATA holding USDT
 
-    /// CHECK: The master treasury account (PDA or admin wallet)
+    // CHECK: The master treasury account (PDA or admin wallet)
     #[account(mut)]
     pub master_treasury: Signer<'info>, // Authority of the treasury
 
@@ -36,8 +36,8 @@ pub struct CloseCompetition<'info> {
     )]
     pub master_treasury_ata: Account<'info, TokenAccount>, // The master treasury's ATA for USDT
 
-    /// CHECK: The USDT mint address
-    // #[account(constraint = usdt_mint.key() == Pubkey::try_from(EXPECTED_USDT_MINT).unwrap())]
+    // CHECK: The USDT mint address
+    #[account(constraint = usdt_mint.key() == Pubkey::try_from(EXPECTED_USDT_MINT).unwrap())]
     pub usdt_mint: Account<'info, Mint>,
 
     pub authority: Signer<'info>, // Authority to close the competition
