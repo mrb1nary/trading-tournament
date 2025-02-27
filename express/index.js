@@ -2,7 +2,7 @@ import express from "express";
 import fetchTxRouter from "./routes/fetchTx.js";
 
 const app = express();
-
+app.use(express.json());
 app.use("/api", fetchTxRouter);
 
 app.listen(3000, () => {
