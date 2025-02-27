@@ -4,13 +4,14 @@ dotenv.config();
 
 export const fetchTx = async (req, res) => {
   const address = req.params.address;
-  const contestStartTime = req.body.contestStartTime; // Assuming this is passed in the request body
-  const contestEndTime = req.body.contestEndTime; // Assuming this is passed in the request body
+  const contestStartTime = req.body.contestStartTime;
+  const contestEndTime = req.body.contestEndTime;
   let allTransactions = [];
   let before = null;
+  let shouldContinueFetching = true;
 
   try {
-    while (true) {
+    while (shouldContinueFetching) {
       const requestOptions = {
         method: "get",
         url: "https://pro-api.solscan.io/v2.0/account/transactions",
@@ -28,15 +29,29 @@ export const fetchTx = async (req, res) => {
 
       if (response.data && response.data.data) {
         const transactions = response.data.data;
-        if (transactions.length === 0) break;
 
-        allTransactions = [...allTransactions, ...transactions];
+        if (transactions.length === 0) {
+          break; // No more transactions, exit loop
+        }
 
-        before = transactions[transactions.length - 1].tx_hash;
+        // Check the timestamp of the last transaction
+        const lastTransaction = transactions[transactions.length - 1];
+        const lastTransactionTime = lastTransaction.block_time;
 
-        if (transactions.length < 40) break;
+        if (lastTransactionTime <= contestEndTime) {
+          // Continue fetching only if the last transaction is within the contest period
+          allTransactions = [...allTransactions, ...transactions];
+          before = lastTransaction.tx_hash;
+
+          if (transactions.length < 40) {
+            shouldContinueFetching = false; // Less than 40 transactions, likely the end
+          }
+        } else {
+          // Last transaction exceeds contest end time, stop fetching
+          shouldContinueFetching = false;
+        }
       } else {
-        break;
+        break; 
       }
     }
 
