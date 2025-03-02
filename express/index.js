@@ -3,6 +3,7 @@ import fetchTxRouter from "./routes/fetchTx.js";
 import determineWinnerRouter from "./routes/determineWinner.js";
 import createCompetitionRouter from "./routes/createCompetition.js";
 import signupPlayerRoute from "./routes/signupPlayer.js";
+import registerPlayerRoute from "./routes/registerPlayerInCompetitionRoute.js"
 import { dbConnect } from "./config/dbConfig.js";
 
 const app = express();
@@ -12,6 +13,7 @@ app.use("/api", fetchTxRouter);
 app.use("/api", determineWinnerRouter);
 app.use("/api", createCompetitionRouter);
 app.use("/api", signupPlayerRoute)
+app.use("/api", registerPlayerRoute)
 
 app.listen(3000, () => {
   console.log("Server is running on port 3000");
