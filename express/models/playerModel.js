@@ -1,24 +1,21 @@
 import mongoose from "mongoose";
+import mongooseUniqueValidator from "mongoose-unique-validator";
 
 const PlayerSchema = new mongoose.Schema(
   {
-    competition_id: {
-      type: mongoose.Schema.Types.ObjectId, // References a Competition document
-      ref: "Competition",
-      optional: true,
-    },
     player_wallet_address: {
       type: String, // PublicKey as a string
       required: true,
     },
     twitter_handle: {
       type: String, // Twitter handle of the player
-      optional: true,
-      maxlength: 15, 
+      unique: true,
+      maxlength: 15,
     },
     player_email: {
       type: String, // Email address of the player
       required: true,
+      unique: true,
       match: [
         /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
         "Please fill a valid email address", // Validation for email format
@@ -27,6 +24,7 @@ const PlayerSchema = new mongoose.Schema(
     player_username: {
       type: String, // Username of the player
       required: true,
+      unique: true,
       maxlength: 20,
       match: [
         /^[a-zA-Z0-9]*$/,
@@ -35,8 +33,13 @@ const PlayerSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, 
+    timestamps: true,
   }
 );
+
+// Apply the uniqueValidator plugin to PlayerSchema
+PlayerSchema.plugin(mongooseUniqueValidator, {
+  message: "{PATH} must be unique.",
+});
 
 export const Player = mongoose.model("Player", PlayerSchema);
