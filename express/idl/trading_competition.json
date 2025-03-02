@@ -1,0 +1,971 @@
+{
+  "address": "1wSNjNqx37H5y3F9nA3JejzBDw3eCDE6hqpD6fEYg33",
+  "metadata": {
+    "name": "trading_competition",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "close_competition",
+      "discriminator": [
+        49,
+        166,
+        127,
+        67,
+        43,
+        108,
+        132,
+        96
+      ],
+      "accounts": [
+        {
+          "name": "competition",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "arg",
+                "path": "competition_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "competition_ata",
+          "writable": true
+        },
+        {
+          "name": "master_treasury",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "master_treasury_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "master_treasury"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "usdt_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "usdt_mint"
+        },
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "competition_id",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "create_competition",
+      "discriminator": [
+        110,
+        212,
+        234,
+        212,
+        118,
+        128,
+        158,
+        244
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "competition",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "arg",
+                "path": "id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "id",
+          "type": "u32"
+        },
+        {
+          "name": "entry_fee",
+          "type": "u64"
+        },
+        {
+          "name": "base_amount",
+          "type": "u64"
+        },
+        {
+          "name": "start_time",
+          "type": "i64"
+        },
+        {
+          "name": "winning_amount",
+          "type": "u64"
+        },
+        {
+          "name": "end_time",
+          "type": "i64"
+        },
+        {
+          "name": "category",
+          "type": {
+            "defined": {
+              "name": "CompetitionCategory"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "determine_winner",
+      "discriminator": [
+        73,
+        160,
+        161,
+        62,
+        27,
+        247,
+        166,
+        31
+      ],
+      "accounts": [
+        {
+          "name": "competition",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "arg",
+                "path": "competition_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "winner_profile",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "winner_profile_key"
+              }
+            ]
+          }
+        },
+        {
+          "name": "winner_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "winner_profile"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "usdt_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "competition_ata",
+          "writable": true
+        },
+        {
+          "name": "usdt_mint",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "competition_id",
+          "type": "u32"
+        },
+        {
+          "name": "winner_key",
+          "type": "pubkey"
+        },
+        {
+          "name": "winning_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [],
+      "args": []
+    },
+    {
+      "name": "register_player",
+      "discriminator": [
+        242,
+        146,
+        194,
+        234,
+        234,
+        145,
+        228,
+        42
+      ],
+      "accounts": [
+        {
+          "name": "competition",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "arg",
+                "path": "competition_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "usdt_mint",
+          "writable": true
+        },
+        {
+          "name": "player_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "player"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "usdt_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "competition_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "competition"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "usdt_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "player_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "competition"
+              },
+              {
+                "kind": "account",
+                "path": "player"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "player"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "competition_id",
+          "type": "u32"
+        },
+        {
+          "name": "current_usdt_balance",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "report_trade",
+      "discriminator": [
+        158,
+        94,
+        16,
+        241,
+        227,
+        100,
+        44,
+        98
+      ],
+      "accounts": [],
+      "args": []
+    },
+    {
+      "name": "signup_player",
+      "discriminator": [
+        197,
+        253,
+        248,
+        155,
+        229,
+        82,
+        241,
+        163
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "player_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "player_name",
+          "type": "string"
+        },
+        {
+          "name": "player_email",
+          "type": "string"
+        },
+        {
+          "name": "player_dob",
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Competition",
+      "discriminator": [
+        193,
+        49,
+        76,
+        118,
+        106,
+        22,
+        221,
+        106
+      ]
+    },
+    {
+      "name": "Player",
+      "discriminator": [
+        205,
+        222,
+        112,
+        7,
+        165,
+        155,
+        206,
+        218
+      ]
+    },
+    {
+      "name": "PlayerProfile",
+      "discriminator": [
+        82,
+        226,
+        99,
+        87,
+        164,
+        130,
+        181,
+        80
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "TooManyPlayers",
+      "msg": "Too many players"
+    },
+    {
+      "code": 6001,
+      "name": "CompetitionFull",
+      "msg": "Competition is full"
+    },
+    {
+      "code": 6002,
+      "name": "CompetitionStarted",
+      "msg": "Competition has already started"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidATA",
+      "msg": "Associated Token Account is invalid"
+    },
+    {
+      "code": 6004,
+      "name": "IncorrectMint",
+      "msg": "Incorrect Mint Address"
+    },
+    {
+      "code": 6005,
+      "name": "AlreadyParticipant",
+      "msg": "Player already participating in another competition"
+    },
+    {
+      "code": 6006,
+      "name": "CompetitionNotEnded",
+      "msg": "Competition not ended yet!"
+    },
+    {
+      "code": 6007,
+      "name": "PlayerNameTooLong",
+      "msg": "Player name is too long. Maximum length is 20 characters."
+    },
+    {
+      "code": 6008,
+      "name": "PlayerEmailTooLong",
+      "msg": "Player email is too long. Maximum length is 50 characters."
+    },
+    {
+      "code": 6009,
+      "name": "PlayerDobTooLong",
+      "msg": "Player date of birth is too long. Maximum length is 10 characters."
+    },
+    {
+      "code": 6010,
+      "name": "IncorrectAuthority",
+      "msg": "Incorrect Authority"
+    }
+  ],
+  "types": [
+    {
+      "name": "Competition",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "id",
+            "type": "u32"
+          },
+          {
+            "name": "max_players",
+            "type": "u8"
+          },
+          {
+            "name": "current_players",
+            "type": "u8"
+          },
+          {
+            "name": "entry_fee",
+            "type": "u64"
+          },
+          {
+            "name": "base_amount",
+            "type": "u64"
+          },
+          {
+            "name": "start_time",
+            "type": "i64"
+          },
+          {
+            "name": "end_time",
+            "type": "i64"
+          },
+          {
+            "name": "winning_amount",
+            "type": "u64"
+          },
+          {
+            "name": "category",
+            "type": {
+              "defined": {
+                "name": "CompetitionCategory"
+              }
+            }
+          },
+          {
+            "name": "winner",
+            "type": "pubkey"
+          },
+          {
+            "name": "payout_claimed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "participants",
+            "type": {
+              "array": [
+                "pubkey",
+                25
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "CompetitionCategory",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "SixPlayers"
+          },
+          {
+            "name": "TwelvePlayers"
+          },
+          {
+            "name": "TwentyFivePlayers"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Player",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "competition_id",
+            "type": "u32"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "base_balance",
+            "type": "u64"
+          },
+          {
+            "name": "current_balance",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PlayerProfile",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "player_name",
+            "type": "string"
+          },
+          {
+            "name": "player_wallet_address",
+            "type": "pubkey"
+          },
+          {
+            "name": "player_email",
+            "type": "string"
+          },
+          {
+            "name": "player_dob",
+            "type": "string"
+          },
+          {
+            "name": "participating_in_other_competition",
+            "type": "bool"
+          }
+        ]
+      }
+    }
+  ]
+}

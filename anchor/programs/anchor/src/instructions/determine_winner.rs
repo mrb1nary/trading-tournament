@@ -39,8 +39,7 @@ pub struct DetermineWinner<'info> {
     pub competition_ata: Account<'info, TokenAccount>,
 
     // CHECK: The USDT mint address
-    // #[account(constraint = usdt_mint.key() == Pubkey::try_from(EXPECTED_USDT_MINT).unwrap())]
-    #[account(mut)]
+    #[account(constraint = usdt_mint.key() == Pubkey::try_from(EXPECTED_USDT_MINT).unwrap())]
     pub usdt_mint: Account<'info, Mint>,
 
     pub token_program: Program<'info, Token>,

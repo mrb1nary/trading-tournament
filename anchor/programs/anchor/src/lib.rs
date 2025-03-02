@@ -8,7 +8,7 @@ pub use error::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("1wSNjNqx37H5y3F9nA3JejzBDw3eCDE6hqpD6fEYg33");
+declare_id!("1wSNjNqx37H5y3F9nA3JejzBDw3eCDE6hqpD6fEYg33"); 
 
 #[program]
 pub mod trading_competition {
