@@ -7,3 +7,5 @@ const router = express.Router();
 router.route("/createCompetition").post(createCompetitionController);
 
 export default router;
+
+
