@@ -8,23 +8,14 @@ pub use error::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("1wSNjNqx37H5y3F9nA3JejzBDw3eCDE6hqpD6fEYg33"); 
+declare_id!("1wSNjNqx37H5y3F9nA3JejzBDw3eCDE6hqpD6fEYg33");
 
 #[program]
 pub mod trading_competition {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        initialize_handler(ctx)
-    }
-
-    pub fn signup_player(
-        ctx: Context<Signup>,
-        player_name: String,
-        player_email: String,
-        player_dob: String,
-    ) -> Result<()> {
-        signup_player_handler(ctx, player_name, player_email, player_dob)
+    pub fn signup_player(ctx: Context<Signup>) -> Result<()> {
+        signup_player_handler(ctx)
     }
 
     pub fn create_competition(
@@ -55,11 +46,6 @@ pub mod trading_competition {
         current_usdt_balance: u64,
     ) -> Result<()> {
         register_player_handler(ctx, competition_id, current_usdt_balance)
-    }
-
-    // We can do this maybe in upcoming versions
-    pub fn report_trade(ctx: Context<ReportTrade>) -> Result<()> {
-        report_trade_handler(ctx)
     }
 
     pub fn determine_winner(

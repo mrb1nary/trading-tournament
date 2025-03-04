@@ -114,11 +114,10 @@ export const determineWinnerController = async (req, res) => {
         let profit = 0;
         transactions.forEach((txn) => {
           console.log(`Processing transaction ${txn.tx_hash}:`, txn);
-          //For each transaction, give profit if it was success, take profit if failed
+
+          // Include only successful transactions in profit calculation
           if (txn.status === "Success") {
-            profit += txn.fee;
-          } else {
-            profit -= txn.fee;
+            profit += txn.fee; // Add fee as part of profit calculation (if applicable)
           }
         });
 
