@@ -22,6 +22,14 @@ export const determineWinnerController = async (req, res) => {
       return res.status(404).json({ error: "Competition not found" });
     }
 
+    // Check if the competition is at least 50% full
+    const { current_players, max_players } = competition;
+    if (current_players < Math.ceil(max_players / 2)) {
+      return res
+        .status(400)
+        .json({ error: "The competition wasn't at least half full" });
+    }
+
     // Extract start and end times for the competition
     const { start_time, end_time, participants } = competition;
 
@@ -168,3 +176,4 @@ export const determineWinnerController = async (req, res) => {
       .json({ error: "Failed to determine winner", details: error.message });
   }
 };
+

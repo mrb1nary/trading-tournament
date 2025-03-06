@@ -1,4 +1,5 @@
 import { Competition } from "../models/competitionModel.js";
+import { Player } from "../models/playerModel.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -12,7 +13,7 @@ export const createCompetitionController = async (req, res) => {
       start_time, // UNIX timestamp for start time
       end_time, // UNIX timestamp for end time
       winning_amount, // Winning amount in lamports
-      category, // Competition category (e.g., "SixPlayers", "TwelvePlayers", "TwentyFivePlayers")
+      category, // Competition category
     } = req.body;
 
     // Validate required fields
@@ -41,20 +42,25 @@ export const createCompetitionController = async (req, res) => {
 
     // Validate category
     const validCategories = [
+      "TwoPlayers",
       "SixPlayers",
       "TwelvePlayers",
       "TwentyFivePlayers",
     ];
+
     if (!validCategories.includes(category)) {
       return res.status(400).json({ error: "Invalid competition category" });
     }
 
     // Generate a unique ID for the competition
-    const competitionId = Math.floor(Math.random() * 1000000); // Generate a random unique ID
+    const competitionId = Math.floor(Math.random() * 1000000);
 
     // Determine max_players based on category
     let max_players;
     switch (category) {
+      case "TwoPlayers":
+        max_players = 2;
+        break;
       case "SixPlayers":
         max_players = 6;
         break;
@@ -68,30 +74,58 @@ export const createCompetitionController = async (req, res) => {
         return res.status(400).json({ error: "Invalid competition category" });
     }
 
-    // Save the competition details to MongoDB
+    // Initialize competition object
     const newCompetition = new Competition({
       authority,
-      id: competitionId, // Unique competition ID
-      max_players, // Set based on category
-      current_players: 0, // Initially, no players are registered
+      id: competitionId,
+      max_players,
+      current_players: 0, // Will be updated for TwoPlayers after finding player
       entry_fee,
       base_amount,
-      start_time: new Date(start_time * 1000), // Convert UNIX timestamp to Date
-      end_time: new Date(end_time * 1000), // Convert UNIX timestamp to Date
+      start_time: new Date(start_time * 1000),
+      end_time: new Date(end_time * 1000),
       winning_amount,
       category,
-      winner: null, // No winner initially
-      payout_claimed: false, // Payout not claimed initially
-      participants: [], // No participants initially
+      winner: null,
+      payout_claimed: false,
+      participants: [], // Will be updated for TwoPlayers after finding player
     });
 
+    // For TwoPlayers category, add the creator as the first participant
+    if (category === "TwoPlayers") {
+      // Find the player by wallet address
+      const player = await Player.findOne({ player_wallet_address: authority });
+
+      // If player doesn't exist, return error
+      if (!player) {
+        return res.status(404).json({
+          error: "Player not found",
+          message:
+            "You need to sign up on the platform before creating a competition",
+        });
+      }
+
+      // Add the player to participants and increment the counter
+      newCompetition.participants.push(player._id);
+      newCompetition.current_players = 1;
+    }
+
+    // Save the competition to the database
     await newCompetition.save();
 
-    // Respond with success
-    res.status(201).json({
+    // Prepare response object
+    const responseData = {
       message: "Competition created successfully",
       competition: newCompetition,
-    });
+    };
+
+    // Add competition_id to response for TwoPlayers category (versus mode)
+    if (category === "TwoPlayers") {
+      responseData.competition_id = competitionId;
+    }
+
+    // Respond with success
+    res.status(201).json(responseData);
   } catch (error) {
     console.error("Error creating competition:", error);
 

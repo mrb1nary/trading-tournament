@@ -40,7 +40,7 @@ const CompetitionSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ["SixPlayers", "TwelvePlayers", "TwentyFivePlayers"], // Matches the Rust enum
+    enum: ["TwoPlayers", "SixPlayers", "TwelvePlayers", "TwentyFivePlayers"], // Matches the Rust enum
     required: true,
   },
   winner: {
