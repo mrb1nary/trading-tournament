@@ -1,8 +1,9 @@
 import { Player } from "../models/playerModel.js";
 import { Competition } from "../models/competitionModel.js";
-import axios from "axios";
-import dotenv from "dotenv";
-dotenv.config();
+import {
+  fetchTransactionsForWallet,
+  calculateProfit,
+} from "../utils/transactionsFetcher.js";
 
 export const determineWinnerController = async (req, res) => {
   try {
@@ -30,8 +31,8 @@ export const determineWinnerController = async (req, res) => {
         .json({ error: "The competition wasn't at least half full" });
     }
 
-    // Extract start and end times for the competition
-    const { start_time, end_time, participants } = competition;
+    // Extract relevant data from the competition
+    const { start_time, end_time, participants, entry_fee } = competition;
 
     if (!participants || participants.length === 0) {
       return res
@@ -42,92 +43,35 @@ export const determineWinnerController = async (req, res) => {
     // Initialize an array to store player profits
     const playerProfits = [];
 
-    // Helper function to fetch transactions for a wallet
-    const fetchTransactions = async (
-      address,
-      contestStartTime,
-      contestEndTime
-    ) => {
-      let allTransactions = [];
-      let before = null;
-      let shouldContinueFetching = true;
-
-      while (shouldContinueFetching) {
-        const requestOptions = {
-          method: "get",
-          url: "https://pro-api.solscan.io/v2.0/account/transactions",
-          params: {
-            address: address,
-            limit: "40",
-            ...(before && { before }),
-          },
-          headers: {
-            token: process.env.SOLSCAN_API_KEY,
-          },
-        };
-
-        const response = await axios.request(requestOptions);
-
-        if (response.data && response.data.data) {
-          const transactions = response.data.data;
-
-          if (transactions.length === 0) {
-            break; // No more transactions, exit loop
-          }
-
-          // Check the timestamp of the last transaction
-          const lastTransaction = transactions[transactions.length - 1];
-          const lastTransactionTime = lastTransaction.block_time;
-
-          if (lastTransactionTime <= contestEndTime) {
-            // Continue fetching only if the last transaction is within the contest period
-            allTransactions = [...allTransactions, ...transactions];
-            before = lastTransaction.tx_hash;
-
-            if (transactions.length < 40) {
-              shouldContinueFetching = false; // Less than 40 transactions, likely the end
-            }
-          } else {
-            // Last transaction exceeds contest end time, stop fetching
-            shouldContinueFetching = false;
-          }
-        } else {
-          break;
-        }
-      }
-
-      // Filter transactions based on start and end times
-      return allTransactions.filter(
-        (transaction) =>
-          transaction.block_time >= contestStartTime &&
-          transaction.block_time <= contestEndTime
-      );
-    };
-
     // Iterate over all participants and fetch their transaction details
     for (const player of participants) {
       try {
-        const transactions = await fetchTransactions(
+        // Convert start_time and end_time to UNIX timestamps (seconds)
+        const startTimestamp = Math.floor(start_time.getTime() / 1000);
+        const endTimestamp = Math.floor(end_time.getTime() / 1000);
+
+        console.log(
+          `Using timestamp range: ${startTimestamp} to ${endTimestamp}`
+        );
+        console.log(
+          `Start time: ${new Date(startTimestamp * 1000).toISOString()}`
+        );
+        console.log(`End time: ${new Date(endTimestamp * 1000).toISOString()}`);
+
+        // Use our utility function that handles API selection
+        const transactions = await fetchTransactionsForWallet(
           player.player_wallet_address,
-          Math.floor(new Date(start_time).getTime() / 1000), // Convert to UNIX timestamp
-          Math.floor(new Date(end_time).getTime() / 1000)
+          startTimestamp,
+          endTimestamp
         );
 
         console.log(
           `Transactions for wallet ${player.player_wallet_address}:`,
-          transactions
+          transactions.length
         );
 
-        // Calculate profit for the player based on transactions
-        let profit = 0;
-        transactions.forEach((txn) => {
-          console.log(`Processing transaction ${txn.tx_hash}:`, txn);
-
-          // Include only successful transactions in profit calculation
-          if (txn.status === "Success") {
-            profit += txn.fee; // Add fee as part of profit calculation (if applicable)
-          }
-        });
+        // Calculate profit using our utility function
+        const profit = calculateProfit(transactions);
 
         console.log(
           `Profit for wallet ${player.player_wallet_address}: ${profit}`
@@ -141,7 +85,7 @@ export const determineWinnerController = async (req, res) => {
         });
       } catch (error) {
         console.error(
-          `Error fetching transactions for wallet ${player.player_wallet_address}:`,
+          `Error processing transactions for wallet ${player.player_wallet_address}:`,
           error.message
         );
       }
@@ -159,15 +103,32 @@ export const determineWinnerController = async (req, res) => {
         .json({ error: "No valid transactions found to determine a winner" });
     }
 
-    // Update the competition with the winner's wallet address
+    // Calculate the financial distribution
+    // Total pool is the entry fee multiplied by the number of participants
+    const totalParticipants = participants.length;
+    const totalPool = entry_fee * totalParticipants;
+
+    // Platform fee is one player's entry fee
+    const platformFee = entry_fee;
+
+    // Winner's prize is the total pool minus the platform fee
+    const winnerPrize = totalPool - platformFee;
+
+    // Update the competition with the winner's wallet address and financial details
     competition.winner = winner.player_wallet_address;
+    competition.winning_amount = winnerPrize;
     await competition.save();
 
-    // Respond with the winner details
+    // Respond with the winner details and financial information
     res.status(200).json({
       message: "Winner determined successfully",
       winner,
       competition_id,
+      financial_details: {
+        total_pool: totalPool,
+        platform_fee: platformFee,
+        winner_prize: winnerPrize,
+      },
     });
   } catch (error) {
     console.error("Error determining winner:", error);
@@ -176,4 +137,3 @@ export const determineWinnerController = async (req, res) => {
       .json({ error: "Failed to determine winner", details: error.message });
   }
 };
-
