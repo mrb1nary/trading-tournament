@@ -5,7 +5,8 @@ import createCompetitionRouter from "./routes/createCompetition.js";
 import joinCompetitionRouter from "./routes/joinCompetition.js";
 import closeCompetitionRouter from "./routes/closeCompetition.js";
 import signupPlayerRoute from "./routes/signupPlayer.js";
-import registerPlayerRoute from "./routes/registerPlayerInCompetitionRoute.js"
+import registerPlayerRoute from "./routes/registerPlayerInCompetitionRoute.js";
+import snapshotRoute from "./routes/snapshot.js";
 import { dbConnect } from "./config/dbConfig.js";
 
 const app = express();
@@ -16,8 +17,9 @@ app.use("/api", determineWinnerRouter);
 app.use("/api", createCompetitionRouter);
 app.use("/api", joinCompetitionRouter);
 app.use("/api", closeCompetitionRouter);
-app.use("/api", signupPlayerRoute)
-app.use("/api", registerPlayerRoute)
+app.use("/api", signupPlayerRoute);
+app.use("/api", registerPlayerRoute);
+app.use("/api", snapshotRoute);
 
 app.listen(3000, () => {
   console.log("Server is running on port 3000");

@@ -18,6 +18,14 @@ export const signupPlayerController = async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    // Check if wallet address already exists
+    const existingPlayer = await Player.findOne({ player_wallet_address });
+    if (existingPlayer) {
+      return res
+        .status(400)
+        .json({ error: "Wallet address already registered" });
+    }
+
     // Create a new Player document
     const newPlayer = new Player({
       player_wallet_address,
