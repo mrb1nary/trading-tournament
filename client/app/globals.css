@@ -43,3 +43,7 @@ body {
     transform: translate(0, -50%) rotate(0deg);
   }
 }
+
+.glow-border {
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+}

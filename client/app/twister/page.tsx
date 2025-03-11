@@ -1,13 +1,12 @@
+// app/twister/page.tsx
+"use client";
 import React from "react";
-import Navbar from "./components/Navbar";
-import Hero from "./components/Hero";
-import ActionCards from "./components/ActionsCards";
-import GameList from "./components/GameList";
-import "./globals.css";
-import HomePage from "./components/Homepage";
-// import HomePage from "./components/HomepageBackup";
+import Navbar from "../components/Navbar";
+import Hero from "../components/Hero";
+import ActionCards from "../components/ActionsCards";
+import GameList from "../components/GameList";
 
-export default function Home() {
+export default function TwisterPage() {
   return (
     <main className="min-h-screen relative overflow-hidden bg-black">
       {/* Green circle gradient positioned off-screen */}
@@ -21,7 +20,10 @@ export default function Home() {
       />
 
       <div className="relative z-10">
-        <HomePage />
+        <Navbar />
+        <Hero />
+        <ActionCards />
+        <GameList />
       </div>
     </main>
   );
