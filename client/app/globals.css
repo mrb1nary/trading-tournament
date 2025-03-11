@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ribbit-green: #00ff00;
+  --color-background: #000000;
+  --color-card-bg: #1a2023;
+  --color-table-bg: #111518;
+}
+
+body {
+  background: radial-gradient(
+    circle at center,
+    #000000 30%,
+    rgba(0, 255, 0, 0.1) 100%
+  );
+  min-height: 100vh;
+  color: white;
+}
+
+@keyframes pulse-gradient {
+  0% {
+    opacity: 0.6;
+    transform: translate(0, -50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(0, -50%) scale(1.1);
+  }
+  100% {
+    opacity: 0.6;
+    transform: translate(0, -50%) scale(1);
+  }
+}
+
+@keyframes liquid-gradient {
+  0% {
+    transform: translate(0, -50%) rotate(0deg);
+  }
+  50% {
+    transform: translate(-5%, -45%) rotate(5deg);
+  }
+  100% {
+    transform: translate(0, -50%) rotate(0deg);
+  }
+}
