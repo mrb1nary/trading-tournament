@@ -4,6 +4,7 @@ import Hero from "./components/Hero";
 import ActionCards from "./components/ActionsCards";
 import GameList from "./components/GameList";
 import "./globals.css";
+import HomePage from "./components/Homepage";
 
 export default function Home() {
   return (
@@ -20,10 +21,8 @@ export default function Home() {
       />
 
       <div className="relative z-10">
-        <Navbar />
-        <Hero />
-        <ActionCards />
-        <GameList />
+        
+        <HomePage />
       </div>
     </main>
   );
