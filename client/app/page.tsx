@@ -1,8 +1,4 @@
 import React from "react";
-import Navbar from "./components/Navbar";
-import Hero from "./components/Hero";
-import ActionCards from "./components/ActionsCards";
-import GameList from "./components/GameList";
 import "./globals.css";
 import HomePage from "./components/Homepage";
 // import HomePage from "./components/HomepageBackup";

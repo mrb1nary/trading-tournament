@@ -1,14 +1,15 @@
 // app/home/page.tsx
 "use client";
-import React, { useEffect, useRef } from "react";
+
 import Navbar from "./Navbar";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import dynamic from "next/dynamic";
+
 import { WavyBackground } from "./WavyBackground";
 
 export default function HomePage() {
   return (
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     <WavyBackground
       colors={["#00AA00", "#008800", "#006600", "#004400"]} // Darker green colors
       waveWidth={50}

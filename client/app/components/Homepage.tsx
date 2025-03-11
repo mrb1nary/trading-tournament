@@ -1,12 +1,11 @@
 "use client";
 import Image from "next/image";
-import { useState } from "react";
+
 import Navbar from "./Navbar";
 import "../globals.css";
 import GameList from "./GameList";
 
 export default function HomePage() {
-  const [points, setPoints] = useState(15430);
   const userId = "7DGa6...827";
   const profit = "+42.6K%";
   const profitAmount = "+ $1 725.4";

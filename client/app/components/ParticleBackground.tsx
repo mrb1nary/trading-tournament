@@ -1,6 +1,6 @@
 // components/ParticleBackground.tsx
 "use client";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 
 interface Particle {
