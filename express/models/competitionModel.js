@@ -1,9 +1,8 @@
-import mongoose from "mongoose";
-
 const CompetitionSchema = new mongoose.Schema({
   authority: {
     type: String,
     required: true,
+    index: true,
   },
   id: {
     type: Number,
@@ -13,22 +12,37 @@ const CompetitionSchema = new mongoose.Schema({
   max_players: {
     type: Number,
     required: true,
+    min: 2, // Minimum 2 players for any competition
   },
   current_players: {
     type: Number,
     default: 0,
+    validate: {
+      validator: function (v) {
+        return v <= this.max_players;
+      },
+      message: "Current players cannot exceed max players",
+    },
   },
   entry_fee: {
     type: Number,
     required: true,
+    min: 0,
   },
   base_amount: {
     type: Number,
     required: true,
+    min: 0,
   },
   start_time: {
-    type: Date, // Using Date for better time handling
+    type: Date,
     required: true,
+    validate: {
+      validator: function (v) {
+        return v < this.end_time;
+      },
+      message: "Start time must be before end time",
+    },
   },
   end_time: {
     type: Date,
@@ -37,14 +51,16 @@ const CompetitionSchema = new mongoose.Schema({
   winning_amount: {
     type: Number,
     required: true,
+    min: 0,
   },
   category: {
     type: String,
-    enum: ["TwoPlayers", "SixPlayers", "TwelvePlayers", "TwentyFivePlayers"], // Matches the Rust enum
+    enum: ["TwoPlayers", "SixPlayers", "TwelvePlayers", "TwentyFivePlayers"],
     required: true,
   },
   winner: {
-    type: String, // PublicKey as a string
+    type: mongoose.Schema.Types.ObjectId, // Changed to reference Player
+    ref: "Player",
     default: null,
   },
   payout_claimed: {
@@ -53,11 +69,30 @@ const CompetitionSchema = new mongoose.Schema({
   },
   participants: [
     {
-      type: mongoose.Schema.Types.ObjectId, // References Player documents
-      ref: "Player",
-      default: [],
+      player: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Player",
+        required: true,
+      },
+      profit: {
+        type: Number,
+        default: 0,
+      },
+      points_earned: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      position: {
+        type: Number,
+        min: 1,
+      },
     },
   ],
 });
+
+// Indexes for frequent query operations
+CompetitionSchema.index({ start_time: 1, end_time: 1 });
+CompetitionSchema.index({ category: 1, winning_amount: 1 });
 
 export const Competition = mongoose.model("Competition", CompetitionSchema);
