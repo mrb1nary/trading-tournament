@@ -6,7 +6,7 @@ import Hero from "../components/Hero";
 import ActionCards from "../components/ActionsCards";
 import GameList from "../components/GameList";
 
-export default function TwisterPage() {
+export default function VersusPage() {
   return (
     <main className="min-h-screen relative overflow-hidden bg-black">
       {/* Green circle gradient positioned off-screen */}
@@ -21,9 +21,7 @@ export default function TwisterPage() {
 
       <div className="relative z-10">
         <Navbar />
-        <Hero 
-        title = "Twister"
-        />
+        <Hero title="Versus"/>
         <ActionCards />
         <GameList />
       </div>

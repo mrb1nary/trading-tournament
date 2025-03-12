@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 
 import Navbar from "./Navbar";
 import "../globals.css";
@@ -51,38 +52,44 @@ export default function HomePage() {
               {/* Game Modes Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Versus Mode */}
-                <div className="flex flex-col items-center bg-gray-900 bg-opacity-40 rounded-xl p-10">
-                  <div className="mb-6">
-                    <Image
-                      src="/assets/versusIcon.png"
-                      alt="Versus"
-                      width={140}
-                      height={140}
-                      className="mx-auto"
-                    />
+                <Link href="/versus" className="block">
+                  <div className="flex flex-col items-center bg-gray-900 bg-opacity-40 rounded-xl p-10 hover:bg-opacity-60 transition-all duration-300">
+                    <div className="mb-6">
+                      <Image
+                        src="/assets/versusIcon.png"
+                        alt="Versus"
+                        width={140}
+                        height={140}
+                        className="mx-auto"
+                      />
+                    </div>
+                    <h3 className="text-2xl font-semibold mt-4">Mode Versus</h3>
+                    <p className="text-green-500 text-lg">
+                      One versus One contest
+                    </p>
                   </div>
-                  <h3 className="text-2xl font-semibold mt-4">Mode Versus</h3>
-                  <p className="text-green-500 text-lg">
-                    One versus One contest
-                  </p>
-                </div>
+                </Link>
 
                 {/* Twister Mode */}
-                <div className="flex flex-col items-center bg-gray-900 bg-opacity-40 rounded-xl p-10">
-                  <div className="mb-6">
-                    <Image
-                      src="/assets/twisterIcon.png"
-                      alt="Twister"
-                      width={140}
-                      height={140}
-                      className="mx-auto"
-                    />
+                <Link href="/twister" className="block">
+                  <div className="flex flex-col items-center bg-gray-900 bg-opacity-40 rounded-xl p-10 hover:bg-opacity-60 transition-all duration-300">
+                    <div className="mb-6">
+                      <Image
+                        src="/assets/twisterIcon.png"
+                        alt="Twister"
+                        width={140}
+                        height={140}
+                        className="mx-auto"
+                      />
+                    </div>
+                    <h3 className="text-2xl font-semibold mt-4">
+                      Mode Twister
+                    </h3>
+                    <p className="text-green-500 text-lg">
+                      Three and more contest
+                    </p>
                   </div>
-                  <h3 className="text-2xl font-semibold mt-4">Mode Twister</h3>
-                  <p className="text-green-500 text-lg">
-                    Three and more contest
-                  </p>
-                </div>
+                </Link>
               </div>
 
               {/* Competition Mode */}
