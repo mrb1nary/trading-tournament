@@ -80,7 +80,7 @@ const GameList: React.FC = () => {
   return (
     <div className="px-6 py-8 max-w-6xl mx-auto">
       <h2 className="text-2xl font-semibold mb-6 flex items-center">
-        Find a game <span className="text-gray-500 ml-2">(0)</span>
+        Game History <span className="text-gray-500 ml-2">(0)</span>
       </h2>
 
       <div className="bg-[#1A2023] rounded-lg overflow-hidden z-10 relative">
