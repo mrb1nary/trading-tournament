@@ -47,3 +47,36 @@ body {
 .glow-border {
   box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
 }
+
+/* Style for WalletMultiButton */
+.wallet-adapter-button {
+  background-color: #34c759 !important; /* Green background for button */
+  color: #000 !important; /* Black text */
+  border: 1px solid #34c759 !important; /* Green border */
+  padding: 8px 16px !important; /* Adjust padding */
+  border-radius: 8px !important; /* Rounded corners */
+}
+
+.wallet-adapter-button:hover {
+  background-color: #2e865f !important; /* Darker green on hover */
+}
+
+/* Style for WalletMultiButton dropdown modal */
+.wallet-adapter-modal {
+  background-color: #1a1a1a !important; /* Dark background for modal */
+  color: #ffffff !important; /* White text */
+}
+
+.wallet-adapter-modal-list-item {
+  background-color: transparent !important; /* Transparent dropdown items */
+  color: #ffffff !important; /* White text for dropdown items */
+}
+
+.wallet-adapter-modal-list-item:hover {
+  background-color: rgba(
+    255,
+    255,
+    255,
+    0.1
+  ) !important; /* Slight hover effect */
+}
