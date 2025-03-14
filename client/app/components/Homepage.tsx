@@ -5,7 +5,7 @@ import Link from "next/link";
 import Navbar from "./Navbar";
 import "../globals.css";
 import GameList from "./GameList";
-import Footer from "./Footer";
+import {Footer} from "./Footer";
 
 export default function HomePage() {
   const userId = "7DGa6...827";

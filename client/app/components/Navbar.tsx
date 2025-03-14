@@ -14,19 +14,16 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="flex items-center justify-between px-8 py-4 bg-background relative">
+    <nav className="flex items-center justify-between px-8 py-4 bg-background relative z-50">
       {/* Left Section */}
       <div className="flex items-center space-x-8">
         <Link href="/" className="text-ribbit-green text-2xl font-bold">
-          ProjectX
+          Ribbit
         </Link>
 
         {/* Desktop Menu */}
         <div className="hidden md:flex items-center space-x-6">
-          <Link
-            href="/home"
-            className="text-text-primary hover:text-ribbit-green"
-          >
+          <Link href="/" className="text-text-primary hover:text-ribbit-green">
             Home
           </Link>
           <Link
@@ -90,12 +87,12 @@ const Navbar: React.FC = () => {
         className={`absolute top-full left-0 w-full bg-background shadow-lg z-40 transform transition-transform duration-300 ${
           isMenuOpen
             ? "translate-y-0 opacity-100"
-            : "-translate-y-full opacity-0"
+            : "-translate-y-full opacity-0 pointer-events-none"
         }`}
       >
         <div className="flex flex-col items-start space-y-4 px-6 py-4">
           <Link
-            href="/home"
+            href="/"
             onClick={() => setIsMenuOpen(false)}
             className="text-text-primary hover:text-ribbit-green w-full"
           >
