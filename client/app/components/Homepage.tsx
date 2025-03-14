@@ -5,7 +5,7 @@ import Link from "next/link";
 import Navbar from "./Navbar";
 import "../globals.css";
 import GameList from "./GameList";
-import {Footer} from "./Footer";
+import { Footer } from "./Footer";
 
 export default function HomePage() {
   const userId = "7DGa6...827";
@@ -94,34 +94,36 @@ export default function HomePage() {
               </div>
 
               {/* Competition Mode */}
-              <div className="relative bg-gray-900 bg-opacity-40 rounded-xl p-8 flex items-center">
-                {/* Icon on the Left */}
-                <div className="mr-8">
-                  <Image
-                    src="/assets/competitionIcon.png"
-                    alt="Competition"
-                    width={160}
-                    height={160}
-                    className="mx-auto"
-                  />
-                </div>
+              <Link href="/competition" className="block">
+                <div className="relative bg-gray-900 bg-opacity-40 rounded-xl p-8 flex items-center hover:bg-opacity-60 transition-all duration-300">
+                  {/* Icon on the Left */}
+                  <div className="mr-8">
+                    <Image
+                      src="/assets/competitionIcon.png"
+                      alt="Competition"
+                      width={160}
+                      height={160}
+                      className="mx-auto"
+                    />
+                  </div>
 
-                {/* Text on the Right */}
-                <div>
-                  <h3 className="text-2xl font-semibold mb-4">
-                    Mode Competition
-                  </h3>
-                  <p className="text-green-500 text-lg max-w-md">
-                    Five to one hundred contest. Challenge traders from around
-                    the world and win incredible cash prizes.
-                  </p>
-                </div>
+                  {/* Text on the Right */}
+                  <div>
+                    <h3 className="text-2xl font-semibold mb-4">
+                      Mode Competition
+                    </h3>
+                    <p className="text-green-500 text-lg max-w-md">
+                      Five to one hundred contest. Challenge traders from around
+                      the world and win incredible cash prizes.
+                    </p>
+                  </div>
 
-                {/* Popular Badge */}
-                <span className="absolute top-4 right-4 bg-green-600 text-white px-4 py-1 rounded-full text-lg">
-                  Popular #1
-                </span>
-              </div>
+                  {/* Popular Badge */}
+                  <span className="absolute top-4 right-4 bg-green-600 text-white px-4 py-1 rounded-full text-lg">
+                    Popular #1
+                  </span>
+                </div>
+              </Link>
             </div>
 
             {/* Sidebar */}
@@ -179,7 +181,7 @@ export default function HomePage() {
             <GameList />
           </div>
         </div>
-        <Footer/>
+        <Footer />
       </main>
     </>
   );
