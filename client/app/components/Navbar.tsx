@@ -1,12 +1,23 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   MagnifyingGlassIcon,
   Bars3Icon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { useWallet } from "@solana/wallet-adapter-react";
 
 const Navbar: React.FC = () => {
+  const { publicKey, connected } = useWallet();
+  const [walletAddress, setWalletAddress] = useState("Not Connected");
+  useEffect(() => {
+    if (connected && publicKey) {
+      setWalletAddress(publicKey.toBase58());
+    } else {
+      setWalletAddress("Not Connected");
+    }
+  }, [connected, publicKey]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const toggleMenu = () => {
@@ -62,11 +73,9 @@ const Navbar: React.FC = () => {
 
       {/* Right Section */}
       <div className="relative hidden md:block">
-        <input
-          type="text"
-          placeholder="Search"
-          className="bg-background text-text-primary rounded-md py-2 pl-3 pr-10 focus:outline-none border border-gray-800"
-        />
+        <WalletMultiButton className="wallet-adapter-button">
+          {connected ? "Connected" : "Connect Wallet"}
+        </WalletMultiButton>
         <MagnifyingGlassIcon className="h-5 w-5 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2" />
       </div>
 

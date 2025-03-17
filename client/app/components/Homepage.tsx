@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+// import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import Navbar from "./Navbar";
 import "../globals.css";
 import GameList from "./GameList";
@@ -80,9 +80,7 @@ export default function HomePage() {
                 )}
               </div>
 
-              <WalletMultiButton className="wallet-adapter-button">
-                {connected ? "Connected" : "Connect Wallet"}
-              </WalletMultiButton>
+              
             </div>
           </div>
 
