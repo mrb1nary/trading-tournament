@@ -6,11 +6,16 @@ import { use, useState, useMemo } from "react";
 // Dynamically import Navbar with SSR disabled
 const Navbar = dynamic(() => import("@/app/components/Navbar"), { ssr: false });
 
-export default function CategoryPage({ params }) {
-  const { id } = use(params); // Access the dynamic route parameter (e.g., 6p, 12p, etc.)
+interface Params {
+  id: string;
+}
+
+export default function CategoryPage({ params }: { params: Promise<Params> }) {
+  const { id } = use(params) as { id: string }; // Access the dynamic route parameter (e.g., 6p, 12p, etc.)
   const [activeFilter, setActiveFilter] = useState("All");
 
   // Example data for competitions
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const allCompetitions = [
     {
       start: "7PM UTC+1",
@@ -68,6 +73,8 @@ export default function CategoryPage({ params }) {
       return compHours === hours;
     });
   }, [activeFilter, allCompetitions]);
+
+  console.log(id);
 
   return (
     <div className="bg-black text-white min-h-screen">

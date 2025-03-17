@@ -35,7 +35,14 @@ export default function CompetitionMode() {
   ];
 
   // Function to handle card click
-  const handleCardClick = (card) => {
+  interface Card {
+    cashPrize: string;
+    entryToPlay: string;
+    baseAmount: string;
+    route: string;
+  }
+
+  const handleCardClick = (card: Card) => {
     let prefix = "";
 
     if (activeTab === "Special") {
