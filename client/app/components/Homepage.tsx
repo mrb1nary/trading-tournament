@@ -35,11 +35,11 @@ export default function HomePage() {
       <main className="min-h-screen relative overflow-hidden bg-black">
         {/* Green Gradient Background */}
         <div
-          className="absolute w-[200vw] h-[200vw] rounded-full -left-[50vw] top-1/2 -translate-y-1/2 pointer-events-none z-0"
+          className="absolute w-[150vw] h-[150vw] rounded-full -right-[75vw] top-1/2 -translate-y-1/2 pointer-events-none z-0"
           style={{
             background:
-              "radial-gradient(circle, rgba(16,185,129,0.35) 10%, rgba(0,0,0,0.1) 70%)",
-            backgroundSize: "200% 200%",
+              "radial-gradient(circle, rgba(0,255,0,0.2) 0%, rgba(0,0,0,0) 70%)",
+            backgroundSize: "150% 150%",
           }}
         />
 
@@ -79,8 +79,6 @@ export default function HomePage() {
                   </>
                 )}
               </div>
-
-              
             </div>
           </div>
 

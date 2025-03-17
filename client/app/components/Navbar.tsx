@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -11,6 +13,14 @@ import { useWallet } from "@solana/wallet-adapter-react";
 const Navbar: React.FC = () => {
   const { publicKey, connected } = useWallet();
   const [walletAddress, setWalletAddress] = useState("Not Connected");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Only render component after client-side hydration is complete
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (connected && publicKey) {
       setWalletAddress(publicKey.toBase58());
@@ -18,11 +28,15 @@ const Navbar: React.FC = () => {
       setWalletAddress("Not Connected");
     }
   }, [connected, publicKey]);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
+
+  // Return null during server-side rendering or initial client render
+  if (!mounted) {
+    return null; // This prevents any rendering until client-side hydration is complete
+  }
 
   return (
     <nav className="flex items-center justify-between px-8 py-4 bg-background relative z-50">
@@ -76,7 +90,6 @@ const Navbar: React.FC = () => {
         <WalletMultiButton className="wallet-adapter-button">
           {connected ? "Connected" : "Connect Wallet"}
         </WalletMultiButton>
-        <MagnifyingGlassIcon className="h-5 w-5 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2" />
       </div>
 
       {/* Hamburger Menu Button */}

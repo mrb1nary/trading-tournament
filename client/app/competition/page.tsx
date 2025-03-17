@@ -3,31 +3,52 @@ import React, { useState } from "react";
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import MyCompetitionTable from "../components/MyCompetitionTable";
+import { useRouter } from "next/navigation";
 
 export default function CompetitionMode() {
   const [activeTab, setActiveTab] = useState("12 players");
+  const router = useRouter();
 
   // Tabs data
   const tabs = ["Special", "6 players", "12 players", "25 players"];
 
-  // Cards data
+  // Cards data with added routing information
   const cards = [
     {
       cashPrize: "0.5 SOL",
       entryToPlay: "0.055 SOL",
       baseAmount: "10 USDT",
+      route: "10",
     },
     {
       cashPrize: "2 SOL",
       entryToPlay: "0.2 SOL",
       baseAmount: "50 USDT",
+      route: "50",
     },
     {
       cashPrize: "1 SOL",
       entryToPlay: "0.1 SOL",
       baseAmount: "25 USDT",
+      route: "25",
     },
   ];
+
+  // Function to handle card click
+  const handleCardClick = (card) => {
+    let prefix = "";
+
+    if (activeTab === "Special") {
+      prefix = "special";
+    } else {
+      // Extract the number from the active tab (e.g., "6 players" -> "6p")
+      const playerCount = activeTab.split(" ")[0];
+      prefix = `${playerCount}p`;
+    }
+
+    // Navigate to the appropriate route
+    router.push(`/category/${prefix}${card.route}`);
+  };
 
   // Dummy competition data
   const dummyCompetitions = [
@@ -99,6 +120,7 @@ export default function CompetitionMode() {
           {cards.map((card, index) => (
             <div
               key={index}
+              onClick={() => handleCardClick(card)}
               className={`bg-[#242424] rounded-2xl shadow-lg p-6 text-center relative flex flex-col justify-between ${
                 index === 1 ? "h-[380px]" : "h-[330px] opacity-50"
               } transition-all duration-300 hover:scale-105 hover:shadow-xl hover:opacity-100 hover:bg-[#2a2a2a] cursor-pointer`}
