@@ -10,6 +10,16 @@ import "../globals.css";
 import GameList from "./GameList";
 import { Footer } from "./Footer";
 
+import { FaTelegram, FaWallet } from "react-icons/fa";
+import { FaXTwitter } from "react-icons/fa6";
+
+import { FiCopy, FiSettings } from "react-icons/fi";
+
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+import { MdOutlineTimer } from "react-icons/md";
+
 export default function HomePage() {
   const { publicKey, connected } = useWallet();
   const [walletAddress, setWalletAddress] = useState("Not Connected");
@@ -35,10 +45,7 @@ export default function HomePage() {
       <Navbar />
       <main className="min-h-screen relative overflow-hidden gradient-background">
         {/* Green Gradient Background */}
-        <div
-          className="absolute w-[150vw] h-[150vw] rounded-full -right-[75vw] top-1/2 -translate-y-1/2 pointer-events-none z-0"
-          
-        />
+        <div className="absolute w-[150vw] h-[150vw] rounded-full -right-[75vw] top-1/2 -translate-y-1/2 pointer-events-none z-0" />
 
         {/* Main Content */}
         <div className="container mx-auto px-6 py-8 relative z-10 flex flex-col items-center">
@@ -71,18 +78,18 @@ export default function HomePage() {
           {/* Main Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8 w-full">
             {/* Left Content */}
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-8 h-full">
               {/* Game Modes Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-grow">
                 {/* Versus Mode */}
-                <Link href="/versus" className="block">
-                  <div className="flex flex-col items-center bg-gray-900 bg-opacity-40 rounded-xl p-10 hover:bg-opacity-60 transition-all duration-300">
+                <Link href="/versus" className="block h-full">
+                  <div className="flex flex-col items-center justify-between bg-gray-900 bg-opacity-40 rounded-xl p-10 hover:bg-opacity-60 transition-all duration-300 h-full">
                     <div className="mb-6">
                       <Image
                         src="/assets/versusIcon.png"
                         alt="Versus"
-                        width={140}
-                        height={140}
+                        width={240}
+                        height={240}
                         className="mx-auto"
                       />
                     </div>
@@ -94,14 +101,14 @@ export default function HomePage() {
                 </Link>
 
                 {/* Twister Mode */}
-                <Link href="/twister" className="block">
-                  <div className="flex flex-col items-center bg-gray-900 bg-opacity-40 rounded-xl p-10 hover:bg-opacity-60 transition-all duration-300">
+                <Link href="/twister" className="block h-full">
+                  <div className="flex flex-col items-center justify-between bg-gray-900 bg-opacity-40 rounded-xl p-10 hover:bg-opacity-60 transition-all duration-300 h-full">
                     <div className="mb-6">
                       <Image
                         src="/assets/twisterIcon.png"
                         alt="Twister"
-                        width={140}
-                        height={140}
+                        width={240}
+                        height={240}
                         className="mx-auto"
                       />
                     </div>
@@ -144,8 +151,10 @@ export default function HomePage() {
 
             {/* Sidebar */}
             <aside className="bg-gray-900 bg-opacity-70 rounded-xl p-6">
-              <div className="flex items-center mb-6">
-                <div className="mr-4">
+              {/* User Info Section */}
+              <div className="flex items-center justify-between mb-6">
+                {/* Avatar and User Info */}
+                <div className="flex items-center">
                   <Image
                     src="/assets/userIcon.png"
                     alt="User"
@@ -153,17 +162,85 @@ export default function HomePage() {
                     height={60}
                     className="rounded-full"
                   />
+                  <div className="ml-4">
+                    {/* Wallet Address */}
+                    <h3 className="font-semibold text-xl text-white">
+                      tSg5...2eqd
+                    </h3>
+                    {/* Username with Copy Icon */}
+                    <div className="flex items-center">
+                      <p className="text-gray-400 text-sm">7DGa66</p>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText("7DGa66");
+                          toast.success("Username copied to clipboard!", {
+                            position: "top-right",
+                            autoClose: 4000,
+                            hideProgressBar: false,
+                            closeOnClick: true,
+                            pauseOnHover: true,
+                            draggable: true,
+                          });
+                        }}
+                        className="ml-2 text-gray-400 hover:text-green-500 hover:scale-110 transition-all duration-200"
+                        title="Copy to clipboard"
+                      >
+                        <FiCopy size={14} />
+                      </button>
+                    </div>
+
+                    {/* Toast Container */}
+                    <ToastContainer />
+                  </div>
                 </div>
-                <h3 className="font-semibold text-xl">
-                  {connected ? truncatedAddress : "Not Connected"}
-                </h3>
+
+                {/* Settings Icon */}
+                <button
+                  type="button"
+                  className="text-gray-400 hover:text-white"
+                >
+                  <FiSettings size={24} />
+                </button>
               </div>
 
+              {/* Additional Information Section */}
+              <div className="flex flex-col gap-4 mb-6 w-full">
+                {/* First Row */}
+                <div className="flex justify-between w-full">
+                  <div className="flex items-center text-gray-400 text-sm">
+                    <FaWallet className="mr-2" size={20} />
+                    Hb44...Xby
+                  </div>
+                  <div className="flex items-center text-gray-400 text-sm">
+                    <FaXTwitter className="mr-2" size={20} />
+                    Jonh_BBUD
+                  </div>
+                </div>
+
+                {/* Second Row */}
+                <div className="flex justify-between w-full">
+                  <div className="flex items-center text-red-500 text-sm font-semibold">
+                    <MdOutlineTimer className="mr-2" size={20} />
+                    League: incoming
+                  </div>
+                  <div className="flex items-center text-gray-400 text-sm">
+                    <FaTelegram className="mr-2" size={20} />
+                    Jonh_Bud
+                  </div>
+                </div>
+              </div>
+
+              {/* Points Section */}
               <div className="border border-green-500 rounded-xl p-4 text-center mb-6 glow-border">
-                <span className="text-2xl font-semibold">15 430 pts</span>
+                <span className="text-2xl font-semibold text-white">
+                  15,430 pts
+                </span>
               </div>
 
-              <h3 className="text-xl font-semibold mb-4">Missions</h3>
+              {/* Missions Section */}
+              <h3 className="text-xl font-semibold mb-4 text-white">
+                Missions
+              </h3>
               <ul className="space-y-4">
                 {[
                   { name: "Join Telegram", points: "+1200 pts" },
@@ -175,16 +252,18 @@ export default function HomePage() {
                     key={index}
                     className="bg-gray-800 bg-opacity-[30%] rounded-xl p-4 flex justify-between items-center"
                   >
-                    <span className="text-lg">{mission.name}</span>
+                    <span className="text-lg text-white">{mission.name}</span>
                     <span className="text-green-500 text-lg">
                       {mission.points}
                     </span>
                   </li>
                 ))}
               </ul>
+
+              {/* Show More Button */}
               <button
                 type="button"
-                className="w-full text-right text-lg mt-3 text-gray-400"
+                className="w-full text-right text-lg mt-3 text-gray-400 hover:text-white"
               >
                 + Show more
               </button>
