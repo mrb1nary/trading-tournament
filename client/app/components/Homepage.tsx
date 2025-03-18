@@ -32,54 +32,38 @@ export default function HomePage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen relative overflow-hidden bg-black">
+      <main className="min-h-screen relative overflow-hidden gradient-background">
         {/* Green Gradient Background */}
         <div
           className="absolute w-[150vw] h-[150vw] rounded-full -right-[75vw] top-1/2 -translate-y-1/2 pointer-events-none z-0"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(0,255,0,0.2) 0%, rgba(0,0,0,0) 70%)",
-            backgroundSize: "150% 150%",
-          }}
+          
         />
 
         {/* Main Content */}
         <div className="container mx-auto px-6 py-8 relative z-10 flex flex-col items-center">
           {/* Wallet Connect Section */}
-          <div className="flex items-center mb-8 bg-gray-900 bg-opacity-40 rounded-xl p-6 w-full">
-            <div className="bg-transparent rounded-full mr-6">
-              <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center">
-                <span className="text-black text-3xl">🐸</span>
+          <div className="flex justify-between w-full mb-12 space-x-4">
+            {[
+              { step: "1", text: "Join a game" },
+              { step: "2", text: "Trade during the contest" },
+              { step: "3", text: "Players with best PnL win" },
+            ].map((item, index) => (
+              <div
+                key={index}
+                className={`flex flex-col items-center justify-center text-center rounded-full p-6 w-full shadow-md transition-all duration-300 ${
+                  index === 1
+                    ? "bg-[#1a1a1a] scale-105 hover:bg-[#2a2a2a]"
+                    : "bg-[#0d0d0d] hover:bg-[#1a1a1a]"
+                }`}
+              >
+                <h3 className="text-[#39996c] text-5xl font-bold">
+                  {item.step}
+                </h3>
+                <p className="text-[#39996c] text-2xl font-bold mt-2">
+                  {item.text}
+                </p>
               </div>
-            </div>
-
-            <div className="flex flex-1 justify-between items-center">
-              <div className="flex flex-col">
-                {connected ? (
-                  <>
-                    <h2 className="text-3xl font-semibold">
-                      {truncatedAddress}
-                    </h2>
-                    <div className="mt-2">
-                      <span className="text-green-500 text-lg">{profit}</span>
-                      <span className="text-green-500 text-lg ml-4">
-                        {profitAmount}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h2 className="text-3xl font-semibold">
-                      Connect your wallet to start trading
-                    </h2>
-                    <div className="mt-2">
-                      <span className="text-gray-400 text-lg">0%</span>
-                      <span className="text-gray-400 text-lg ml-4">$0</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+            ))}
           </div>
 
           {/* Rest of the content remains same as previous version */}
