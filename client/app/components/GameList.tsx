@@ -78,12 +78,12 @@ const games: Game[] = [
 
 const GameList: React.FC = () => {
   return (
-    <div className="px-6 py-8 max-w-6xl mx-auto">
-      <h2 className="text-2xl font-semibold mb-6 flex items-center">
-        Game History <span className="text-gray-500 ml-2">(0)</span>
+    <div className="py-8 w-full mx-auto my-32">
+      <h2 className="text-4xl font-semibold mb-6 flex items-center">
+        My Games <span className="text-gray-500 ml-2">(0)</span>
       </h2>
 
-      <div className="bg-[#1A2023] rounded-lg overflow-hidden z-10 relative">
+      <div className="bg-[#1A2023] rounded-4xl overflow-hidden z-10 relative">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-800">

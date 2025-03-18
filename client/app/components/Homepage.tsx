@@ -83,18 +83,20 @@ export default function HomePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-grow">
                 {/* Versus Mode */}
                 <Link href="/versus" className="block h-full">
-                  <div className="flex flex-col items-center justify-between bg-gray-900 bg-opacity-40 rounded-xl p-10 hover:bg-opacity-60 transition-all duration-300 h-full">
-                    <div className="mb-6">
+                  <div className="mode-card flex flex-col items-center justify-between bg-[#0c0c0c] rounded-xl p-10 transition-all duration-300 h-full">
+                    <div className="mb-6 transition-transform duration-300">
                       <Image
                         src="/assets/versusIcon.png"
                         alt="Versus"
                         width={240}
                         height={240}
-                        className="mx-auto"
+                        className="mx-auto transition-all duration-300"
                       />
                     </div>
-                    <h3 className="text-2xl font-semibold mt-4">Mode Versus</h3>
-                    <p className="text-green-500 text-lg">
+                    <h3 className="text-2xl font-semibold mt-4 transition-all duration-300">
+                      Mode Versus
+                    </h3>
+                    <p className="text-green-500 text-lg transition-all duration-300">
                       One versus One contest
                     </p>
                   </div>
@@ -102,20 +104,20 @@ export default function HomePage() {
 
                 {/* Twister Mode */}
                 <Link href="/twister" className="block h-full">
-                  <div className="flex flex-col items-center justify-between bg-gray-900 bg-opacity-40 rounded-xl p-10 hover:bg-opacity-60 transition-all duration-300 h-full">
-                    <div className="mb-6">
+                  <div className="mode-card flex flex-col items-center justify-between bg-[#0c0c0c]rounded-xl p-10 transition-all duration-300 h-full">
+                    <div className="mb-6 transition-transform duration-300">
                       <Image
                         src="/assets/twisterIcon.png"
                         alt="Twister"
                         width={240}
                         height={240}
-                        className="mx-auto"
+                        className="mx-auto transition-all duration-300"
                       />
                     </div>
-                    <h3 className="text-2xl font-semibold mt-4">
+                    <h3 className="text-2xl font-semibold mt-4 transition-all duration-300">
                       Mode Twister
                     </h3>
-                    <p className="text-green-500 text-lg">
+                    <p className="text-green-500 text-lg transition-all duration-300">
                       Three and more contest
                     </p>
                   </div>
@@ -124,25 +126,25 @@ export default function HomePage() {
 
               {/* Competition Mode */}
               <Link href="/competition" className="block">
-                <div className="relative bg-gray-900 bg-opacity-40 rounded-xl p-8 flex items-center hover:bg-opacity-60 transition-all duration-300">
-                  <div className="mr-8">
+                <div className="competition-card relative bg-[#0c0c0c] rounded-xl p-8 flex items-center transition-all duration-300">
+                  <div className="mr-8 transition-transform duration-300">
                     <Image
                       src="/assets/competitionIcon.png"
                       alt="Competition"
                       width={160}
                       height={160}
-                      className="mx-auto"
+                      className="mx-auto transition-all duration-300"
                     />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-semibold mb-4">
+                    <h3 className="text-2xl font-semibold mb-4 transition-all duration-300">
                       Mode Competition
                     </h3>
-                    <p className="text-green-500 text-lg max-w-md">
+                    <p className="text-green-500 text-lg max-w-md transition-all duration-300">
                       Five to one hundred contest. Challenge traders worldwide.
                     </p>
                   </div>
-                  <span className="absolute top-4 right-4 bg-green-600 text-white px-4 py-1 rounded-full text-lg">
+                  <span className="absolute top-4 right-4 bg-green-600 text-white px-4 py-1 rounded-full text-lg transition-all duration-300">
                     Popular #1
                   </span>
                 </div>
@@ -150,7 +152,7 @@ export default function HomePage() {
             </div>
 
             {/* Sidebar */}
-            <aside className="bg-gray-900 bg-opacity-70 rounded-xl p-6">
+            <aside className="bg-[#151718] rounded-xl p-6">
               {/* User Info Section */}
               <div className="flex items-center justify-between mb-6">
                 {/* Avatar and User Info */}
