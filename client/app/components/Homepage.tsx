@@ -152,7 +152,7 @@ export default function HomePage() {
             </div>
 
             {/* Sidebar */}
-            <aside className="bg-[#151718] rounded-xl p-6">
+            <aside className="bg-[#151718] rounded-xl p-15">
               {/* User Info Section */}
               <div className="flex items-center justify-between mb-6">
                 {/* Avatar and User Info */}
