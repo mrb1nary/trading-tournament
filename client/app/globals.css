@@ -7,7 +7,7 @@
   --color-table-bg: #111518;
 }
 
-body {
+/* body {
   background: radial-gradient(
     circle at center,
     #000000 30%,
@@ -15,6 +15,28 @@ body {
   );
   min-height: 100vh;
   color: white;
+} */
+
+body {
+  background: radial-gradient(
+    circle at 80% center,
+    rgba(0, 255, 0, 0.7) 0%,
+    rgba(0, 255, 0, 0.6) 25%,
+    rgba(0, 255, 0, 0.5) 50%,
+    #000000 100%
+  );
+  min-height: 100vh;
+  color: white;
+}
+
+.gradient-background {
+  background: radial-gradient(
+    circle at 80% center,
+    rgba(0, 255, 0, 0.2) 0%,
+    rgba(0, 255, 0, 0.1) 30%,
+    #000000 100%
+  );
+  min-height: 100vh;
 }
 
 @keyframes pulse-gradient {
