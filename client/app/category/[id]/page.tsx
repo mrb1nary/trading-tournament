@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { use, useState, useMemo } from "react";
+import "../../globals.css";
 
 // Dynamically import Navbar with SSR disabled
 const Navbar = dynamic(() => import("@/app/components/Navbar"), { ssr: false });
@@ -77,18 +78,22 @@ export default function CategoryPage({ params }: { params: Promise<Params> }) {
   console.log(id);
 
   return (
-    <div className="bg-black text-white min-h-screen">
+    <div className="bg-black text-white min-h-screen ">
       {/* Header */}
       <Navbar />
 
       {/* Main Content */}
-      <main className="px-6 py-8">
+      <main className="px-6 py-8 gradient-background">
         {/* Competition Info */}
         <div className="text-center mb-8">
-          <h2 className="text-lg font-semibold text-green-500">
-            Cashprize 0.25 SOL / 6 players
+          <h2 className="text-4xl font-bold">
+            Cashprize <span className="text-green-500">0.25 SOL</span> / <span className="text-green-500">6 </span>
+            players
           </h2>
-          <p>Entry : 0.055 SOL | Base Amount : 10 USDT</p>
+          <p className="text-2xl mt-4">
+            Entry: <span className="text-green-500">0.055 SOL</span> | Base
+            Amount: <span className="text-green-500">10 USDT</span>
+          </p>
         </div>
 
         {/* Tabs */}
