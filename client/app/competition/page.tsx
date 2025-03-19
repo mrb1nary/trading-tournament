@@ -126,23 +126,19 @@ export default function CompetitionMode() {
             <div
               key={index}
               onClick={() => handleCardClick(card)}
-              className={`bg-[#242424] rounded-2xl shadow-lg p-6 text-center relative flex flex-col justify-between ${
-                index === 1 ? "h-[380px]" : "h-[330px] opacity-50"
-              } transition-all duration-300 hover:scale-105 hover:shadow-xl hover:opacity-100 hover:bg-[#2a2a2a] cursor-pointer`}
+              className={`bg-[#242424] rounded-2xl shadow-lg p-6 text-center relative flex flex-col justify-between 
+      h-[380px] ${index !== 1 ? "opacity-70 hover:opacity-100" : ""} 
+      transition-all duration-300 hover:scale-105 hover:shadow-xl hover:bg-[#2a2a2a] cursor-pointer`}
             >
               {/* Flower SVG with Cash Prize Inside */}
               <div className="relative mx-auto mb-[-10rem] mt-[-2rem]">
                 <img
                   src="/assets/bigFlower.svg"
                   alt="Flower"
-                  className={`${
-                    index === 1 ? "w-[320px] h-[320px]" : "w-[280px] h-[280px]"
-                  } mx-auto transition-transform duration-300 hover:rotate-3`}
+                  className="w-[300px] h-[300px] mx-auto transition-transform duration-300 hover:rotate-3"
                 />
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <div className="text-white text-lg font-bold">
-                    Cashprize
-                  </div>
+                  <div className="text-white text-lg font-bold">Cashprize</div>
                   <div className="text-yellow-400 text-xl font-bold hover:text-yellow-300 transition-colors duration-300">
                     {card.cashPrize}
                   </div>
