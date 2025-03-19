@@ -100,18 +100,22 @@ export default function CompetitionMode() {
       {/* Competition Content */}
       <div className="relative z-10 mt-10 max-w-5xl mx-auto px-4">
         {/* Tabs */}
-        <div className="flex justify-center space-x-8 mb-8 border-b border-gray-700 pb-3">
+        <div className="flex justify-between space-x-8 mb-8 border-b border-gray-700 pb-3">
           {tabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`text-lg font-medium ${
+              className={`group relative px-2 py-1 text-xl font-bold transition-all duration-300 ease-in-out transform ${
                 activeTab === tab
                   ? "text-[#29664A] border-b-2 border-[#29664A]"
-                  : "text-gray-400"
+                  : "text-gray-400 hover:text-white hover:scale-105"
               }`}
             >
               {tab}
+              {/* Animated hover underline for inactive tabs */}
+              {activeTab !== tab && (
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-500 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:w-full"></span>
+              )}
             </button>
           ))}
         </div>
@@ -136,7 +140,7 @@ export default function CompetitionMode() {
                   } mx-auto transition-transform duration-300 hover:rotate-3`}
                 />
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <div className="text-[#29664A] text-lg font-bold">
+                  <div className="text-white text-lg font-bold">
                     Cashprize
                   </div>
                   <div className="text-yellow-400 text-xl font-bold hover:text-yellow-300 transition-colors duration-300">

@@ -23,7 +23,7 @@ pub struct Competition {
     pub winning_amount: u64,
     pub category: CompetitionCategory,
     pub winner: Pubkey,
-    pub payout_claimed: bool,
+    pub payout_claimed: bool, 
     pub bump: u8,
 
     // Fixed-size array to hold participant public keys

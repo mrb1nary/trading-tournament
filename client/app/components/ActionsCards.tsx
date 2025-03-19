@@ -22,8 +22,8 @@ const ActionCard: React.FC<ActionCardProps> = ({ iconSrc, title }) => {
             <Image
               src={iconSrc}
               alt={title}
-              width={120}
-              height={120}
+              width={320}
+              height={320}
               className="object-contain"
             />
           </div>

@@ -43,9 +43,9 @@ export default function HomePage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen relative overflow-hidden gradient-background">
+      <main className="min-h-screen relative overflow-hidden ">
         {/* Green Gradient Background */}
-        <div className="absolute w-[150vw] h-[150vw] rounded-full -right-[75vw] top-1/2 -translate-y-1/2 pointer-events-none z-0" />
+        <div className="absolute w-[150vw] h-[150vw] rounded-full -right-[75vw] top-1/2 -translate-y-1/2 pointer-events-none z-0 gradient-background" />
 
         {/* Main Content */}
         <div className="container mx-auto px-6 py-8 relative z-10 flex flex-col items-center">
@@ -74,7 +74,6 @@ export default function HomePage() {
             ))}
           </div>
 
-          {/* Rest of the content remains same as previous version */}
           {/* Main Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8 w-full">
             {/* Left Content */}
@@ -83,7 +82,7 @@ export default function HomePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-grow">
                 {/* Versus Mode */}
                 <Link href="/versus" className="block h-full">
-                  <div className="mode-card flex flex-col items-center justify-between bg-[#0c0c0c] rounded-xl p-10 transition-all duration-300 h-full">
+                  <div className="mode-card flex flex-col items-center justify-between card-bg rounded-xl p-10 transition-all duration-300 h-full">
                     <div className="mb-6 transition-transform duration-300">
                       <Image
                         src="/assets/versusIcon.png"
@@ -104,7 +103,7 @@ export default function HomePage() {
 
                 {/* Twister Mode */}
                 <Link href="/twister" className="block h-full">
-                  <div className="mode-card flex flex-col items-center justify-between bg-[#0c0c0c]rounded-xl p-10 transition-all duration-300 h-full">
+                  <div className="mode-card flex flex-col items-center justify-between card-bg rounded-xl p-10 transition-all duration-300 h-full">
                     <div className="mb-6 transition-transform duration-300">
                       <Image
                         src="/assets/twisterIcon.png"
@@ -126,21 +125,21 @@ export default function HomePage() {
 
               {/* Competition Mode */}
               <Link href="/competition" className="block">
-                <div className="competition-card relative bg-[#0c0c0c] rounded-xl p-8 flex items-center transition-all duration-300">
-                  <div className="mr-8 transition-transform duration-300">
+                <div className="competition-card mode-card relative card-bg rounded-xl p-12 flex items-center transition-all duration-300 h-[380px]">
+                  <div className="mr-10 transition-transform duration-300">
                     <Image
                       src="/assets/competitionIcon.png"
                       alt="Competition"
-                      width={160}
-                      height={160}
+                      width={280}
+                      height={280}
                       className="mx-auto transition-all duration-300"
                     />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-semibold mb-4 transition-all duration-300">
+                    <h3 className="text-3xl font-semibold mb-4 transition-all duration-300">
                       Mode Competition
                     </h3>
-                    <p className="text-green-500 text-lg max-w-md transition-all duration-300">
+                    <p className="text-green-500 text-xl max-w-md transition-all duration-300">
                       Five to one hundred contest. Challenge traders worldwide.
                     </p>
                   </div>
@@ -152,9 +151,9 @@ export default function HomePage() {
             </div>
 
             {/* Sidebar */}
-            <aside className="bg-[#151718] rounded-xl p-15">
+            <aside className="bg-[#151718] rounded-xl p-8">
               {/* User Info Section */}
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-16">
                 {/* Avatar and User Info */}
                 <div className="flex items-center">
                   <Image
@@ -206,7 +205,7 @@ export default function HomePage() {
               </div>
 
               {/* Additional Information Section */}
-              <div className="flex flex-col gap-4 mb-6 w-full">
+              <div className="flex flex-col gap-6 mb-10 w-full">
                 {/* First Row */}
                 <div className="flex justify-between w-full">
                   <div className="flex items-center text-gray-400 text-sm">
@@ -233,17 +232,17 @@ export default function HomePage() {
               </div>
 
               {/* Points Section */}
-              <div className="border border-green-500 rounded-xl p-4 text-center mb-6 glow-border">
+              <div className="border border-green-500 rounded-xl p-4 text-center mb-10 animated-glow-border">
                 <span className="text-2xl font-semibold text-white">
                   15,430 pts
                 </span>
               </div>
 
               {/* Missions Section */}
-              <h3 className="text-xl font-semibold mb-4 text-white">
+              <h3 className="text-xl font-semibold mb-6 text-white">
                 Missions
               </h3>
-              <ul className="space-y-4">
+              <ul className="space-y-6">
                 {[
                   { name: "Join Telegram", points: "+1200 pts" },
                   { name: "Win a game", points: "+1300 pts" },
@@ -252,10 +251,19 @@ export default function HomePage() {
                 ].map((mission, index) => (
                   <li
                     key={index}
-                    className="bg-gray-800 bg-opacity-[30%] rounded-xl p-4 flex justify-between items-center"
+                    className="bg-gray-800 bg-opacity-[30%] rounded-xl p-4 flex justify-between items-center relative overflow-hidden group transition-all duration-300 hover:bg-opacity-50 hover:scale-105 hover:shadow-lg hover:shadow-green-500/20"
                   >
-                    <span className="text-lg text-white">{mission.name}</span>
-                    <span className="text-green-500 text-lg">
+                    {/* Shine effect overlay */}
+                    <div className="absolute -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent via-white opacity-10 group-hover:animate-shine" />
+
+                    {/* Left side with gradient border on hover */}
+                    <span className="text-lg text-white group-hover:text-green-400 transition-colors duration-300 relative">
+                      {mission.name}
+                      <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-green-400 to-blue-500 group-hover:w-full transition-all duration-300"></span>
+                    </span>
+
+                    {/* Right side with scale effect on hover */}
+                    <span className="text-green-500 text-lg group-hover:scale-110 group-hover:font-bold transition-all duration-300">
                       {mission.points}
                     </span>
                   </li>
@@ -265,7 +273,7 @@ export default function HomePage() {
               {/* Show More Button */}
               <button
                 type="button"
-                className="w-full text-right text-lg mt-3 text-gray-400 hover:text-white"
+                className="w-full text-right text-lg mt-6 text-gray-400 hover:text-white"
               >
                 + Show more
               </button>
