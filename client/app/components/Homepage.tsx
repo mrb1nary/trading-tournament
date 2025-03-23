@@ -27,7 +27,6 @@ export default function HomePage() {
   const [balance, setBalance] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-
   useEffect(() => {
     if (connected && publicKey) {
       setWalletAddress(publicKey.toBase58());
@@ -62,7 +61,7 @@ export default function HomePage() {
     if (connected && publicKey) {
       navigator.clipboard.writeText(walletAddress);
       toast.success("Wallet address copied to clipboard!", {
-        position: "top-right",
+        position: "bottom-center",
         autoClose: 4000,
         hideProgressBar: false,
         closeOnClick: true,
