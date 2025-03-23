@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 // import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import Navbar from "./Navbar";
 import "../globals.css";
@@ -19,26 +18,59 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import { MdOutlineTimer } from "react-icons/md";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 export default function HomePage() {
   const { publicKey, connected } = useWallet();
+  const { connection } = useConnection();
   const [walletAddress, setWalletAddress] = useState("Not Connected");
-  const profit = connected ? "+42.6K%" : "0%";
-  const profitAmount = connected ? "+ $1 725.4" : "$0";
+  const [balance, setBalance] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
 
   useEffect(() => {
     if (connected && publicKey) {
       setWalletAddress(publicKey.toBase58());
+      fetchWalletBalance();
     } else {
       setWalletAddress("Not Connected");
+      setBalance(0);
     }
   }, [connected, publicKey]);
+
+  const fetchWalletBalance = async () => {
+    if (connected && publicKey && connection) {
+      try {
+        setIsLoading(true);
+        const walletBalance = await connection.getBalance(publicKey);
+        setBalance(walletBalance / LAMPORTS_PER_SOL);
+      } catch (error) {
+        console.error("Error fetching balance:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
 
   const truncatedAddress = walletAddress.includes("...")
     ? walletAddress
     : connected
     ? `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
     : "Not Connected";
+
+  const copyWalletAddress = () => {
+    if (connected && publicKey) {
+      navigator.clipboard.writeText(walletAddress);
+      toast.success("Wallet address copied to clipboard!", {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }
+  };
 
   return (
     <>
@@ -151,7 +183,7 @@ export default function HomePage() {
             </div>
 
             {/* Sidebar */}
-            <aside className="bg-[#151718] rounded-xl p-8">
+            <aside className="bg-gradient-to-tr from-[#1e2427] to-[#121518] rounded-xl p-8">
               {/* User Info Section */}
               <div className="flex items-center justify-between mb-16">
                 {/* Avatar and User Info */}
@@ -166,28 +198,26 @@ export default function HomePage() {
                   <div className="ml-4">
                     {/* Wallet Address */}
                     <h3 className="font-semibold text-xl text-white">
-                      tSg5...2eqd
+                      {connected ? truncatedAddress : "Not Connected"}
                     </h3>
-                    {/* Username with Copy Icon */}
+                    {/* Balance display */}
                     <div className="flex items-center">
-                      <p className="text-gray-400 text-sm">7DGa66</p>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText("7DGa66");
-                          toast.success("Username copied to clipboard!", {
-                            position: "top-right",
-                            autoClose: 4000,
-                            hideProgressBar: false,
-                            closeOnClick: true,
-                            pauseOnHover: true,
-                            draggable: true,
-                          });
-                        }}
-                        className="ml-2 text-gray-400 hover:text-green-500 hover:scale-110 transition-all duration-200"
-                        title="Copy to clipboard"
-                      >
-                        <FiCopy size={14} />
-                      </button>
+                      <p className="text-gray-400 text-sm">
+                        {connected
+                          ? isLoading
+                            ? "Loading..."
+                            : `${balance.toFixed(4)} SOL`
+                          : "Connect your wallet"}
+                      </p>
+                      {connected && (
+                        <button
+                          onClick={copyWalletAddress}
+                          className="ml-2 text-gray-400 hover:text-green-500 hover:scale-110 transition-all duration-200"
+                          title="Copy wallet address"
+                        >
+                          <FiCopy size={14} />
+                        </button>
+                      )}
                     </div>
 
                     {/* Toast Container */}
@@ -210,7 +240,7 @@ export default function HomePage() {
                 <div className="flex justify-between w-full">
                   <div className="flex items-center text-gray-400 text-sm">
                     <FaWallet className="mr-2" size={20} />
-                    Hb44...Xby
+                    {connected ? truncatedAddress : "Not Connected"}
                   </div>
                   <div className="flex items-center text-gray-400 text-sm">
                     <FaXTwitter className="mr-2" size={20} />
