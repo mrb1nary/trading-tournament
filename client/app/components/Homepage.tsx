@@ -3,26 +3,21 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
-// import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import Navbar from "./Navbar";
 import "../globals.css";
 import GameList from "./GameList";
 import { Footer } from "./Footer";
-
 import { FaTelegram, FaWallet } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
-
 import { FiCopy, FiSettings } from "react-icons/fi";
-
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
 import { MdOutlineTimer } from "react-icons/md";
-
 import axios from "axios";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import Modal from "react-modal";
 
 export default function HomePage() {
-
   interface Competition {
     _id: string;
     authority: string;
@@ -44,9 +39,15 @@ export default function HomePage() {
     }[];
   }
 
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+
+  const openModal = () => setModalIsOpen(true);
+  const closeModal = () => setModalIsOpen(false);
+
   const { publicKey, connected } = useWallet();
   const { connection } = useConnection();
   const [walletAddress, setWalletAddress] = useState("Not Connected");
+  const [balance, setBalance] = useState(0);
 
   const [isLoading, setIsLoading] = useState(false);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -65,6 +66,8 @@ export default function HomePage() {
     if (connected && publicKey && connection) {
       try {
         setIsLoading(true);
+        const walletBalance = await connection.getBalance(publicKey);
+        setBalance(walletBalance / LAMPORTS_PER_SOL);
       } catch (error) {
         console.error("Error fetching balance:", error);
       } finally {
@@ -103,6 +106,12 @@ export default function HomePage() {
       setPlayerData(null);
     }
   }, [connected, publicKey, apiUrl]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      Modal.setAppElement(document.body);
+    }
+  }, []);
 
   const truncatedAddress = walletAddress.includes("...")
     ? walletAddress
@@ -281,6 +290,7 @@ export default function HomePage() {
                 <button
                   type="button"
                   className="text-gray-400 hover:text-white"
+                  onClick={openModal}
                 >
                   <FiSettings size={24} />
                 </button>
@@ -292,7 +302,7 @@ export default function HomePage() {
                 <div className="flex justify-between w-full">
                   <div className="flex items-center text-gray-400 text-sm">
                     <FaWallet className="mr-2" size={20} />
-                    {connected ? truncatedAddress : "Not Connected"}
+                    {connected ? `${balance} SOL` : "Not Connected"}
                   </div>
                   <div className="flex items-center text-gray-400 text-sm">
                     <FaXTwitter className="mr-2" size={20} />
@@ -354,6 +364,104 @@ export default function HomePage() {
               >
                 + Show more
               </button>
+              <Modal
+                isOpen={modalIsOpen}
+                onRequestClose={closeModal}
+                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black p-6 rounded-3xl border border-gray-700 max-w-md w-full shadow-lg"
+                overlayClassName="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50"
+                ariaHideApp={false}
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center">
+                    <img
+                      src="/assets/userIcon.png"
+                      alt="User"
+                      className="w-14 h-14 rounded-full mr-4"
+                    />
+                    <div>
+                      <h2 className="text-2xl font-bold text-white">
+                        {playerData?.player_username || "Paul"}
+                      </h2>
+                      <p className="text-gray-400 text-base">
+                        {truncatedAddress}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={closeModal}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    <FiSettings size={28} />
+                  </button>
+                </div>
+
+                <div className="bg-gray-800 rounded-full py-3 px-4 mb-6 text-center">
+                  <span className="text-white text-xl font-semibold">
+                    {playerData?.total_points || "15,346"} points
+                  </span>
+                </div>
+
+                <div className="mb-4">
+                  <div className="flex justify-evenly space-x-6 mb-2">
+                    <span className="text-green-500 font-semibold text-lg">
+                      Profile
+                    </span>
+                    <span className="text-gray-400 text-lg">Missions</span>
+                  </div>
+                  {/* <hr className="border-green-500 border-t-2 w-1/4" /> */}
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-white mb-1 block text-lg">
+                      TG username
+                    </label>
+                    <input
+                      type="text"
+                      value={playerData?.twitter_handle || "Ribbitdotfun"}
+                      readOnly
+                      className="w-full bg-gray-700 rounded-full py-3 px-4 text-white text-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-white mb-1 block text-lg">
+                      X Username
+                    </label>
+                    <input
+                      type="text"
+                      value={playerData?.twitter_handle || "Ribbitdotfun"}
+                      readOnly
+                      className="w-full bg-gray-700 rounded-full py-3 px-4 text-white text-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-white mb-1 block text-lg">
+                      League
+                    </label>
+                    <input
+                      type="text"
+                      value="Incoming"
+                      readOnly
+                      className="w-full bg-gray-700 rounded-full py-3 px-4 text-white text-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-white mb-1 block text-lg">
+                      Friends
+                    </label>
+                    <input
+                      type="text"
+                      value="Coming Soon!"
+                      readOnly
+                      className="w-full bg-gray-700 rounded-full py-3 px-4 text-white text-lg"
+                    />
+                  </div>
+                </div>
+
+                <button className="w-full bg-green-500 text-black font-semibold rounded-full py-3 mt-6 text-lg">
+                  Confirm
+                </button>
+              </Modal>
             </aside>
           </div>
 
