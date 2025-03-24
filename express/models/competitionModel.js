@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+
 const CompetitionSchema = new mongoose.Schema({
   authority: {
     type: String,
@@ -72,7 +74,6 @@ const CompetitionSchema = new mongoose.Schema({
       player: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Player",
-        required: true,
       },
       profit: {
         type: Number,

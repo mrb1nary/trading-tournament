@@ -14,35 +14,57 @@ import { FaXTwitter } from "react-icons/fa6";
 
 import { FiCopy, FiSettings } from "react-icons/fi";
 
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import { MdOutlineTimer } from "react-icons/md";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+
+import axios from "axios";
 
 export default function HomePage() {
+
+  interface Competition {
+    _id: string;
+    authority: string;
+    id: number;
+    max_players: number;
+    current_players: number;
+    entry_fee: number;
+    base_amount: number;
+    start_time: string;
+    end_time: string;
+    winning_amount: number;
+    category: string;
+    winner: string | null;
+    payout_claimed: boolean;
+    participants: {
+      profit: number;
+      points_earned: number;
+      _id: string;
+    }[];
+  }
+
   const { publicKey, connected } = useWallet();
   const { connection } = useConnection();
   const [walletAddress, setWalletAddress] = useState("Not Connected");
-  const [balance, setBalance] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (connected && publicKey) {
-      setWalletAddress(publicKey.toBase58());
-      fetchWalletBalance();
-    } else {
-      setWalletAddress("Not Connected");
-      setBalance(0);
-    }
-  }, [connected, publicKey]);
+  const [isLoading, setIsLoading] = useState(false);
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const [playerData, setPlayerData] = useState<null | {
+    _id: string;
+    player_wallet_address: string;
+    twitter_handle: string;
+    player_username: string;
+    player_email: string;
+    total_points: number;
+    total_profit: number;
+    competitions_played: unknown[];
+  }>(null);
 
   const fetchWalletBalance = async () => {
     if (connected && publicKey && connection) {
       try {
         setIsLoading(true);
-        const walletBalance = await connection.getBalance(publicKey);
-        setBalance(walletBalance / LAMPORTS_PER_SOL);
       } catch (error) {
         console.error("Error fetching balance:", error);
       } finally {
@@ -50,6 +72,37 @@ export default function HomePage() {
       }
     }
   };
+
+  const fetchPlayerData = async (address: string) => {
+    if (!address || !apiUrl) return;
+
+    try {
+      const response = await axios.get(`${apiUrl}/fetchPlayer/${address}`);
+      setPlayerData(response.data.data);
+    } catch (error) {
+      console.error("Error fetching player data:", error);
+
+      setPlayerData(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (connected && publicKey) {
+      const address = publicKey.toBase58();
+      setWalletAddress(address);
+      fetchWalletBalance();
+
+      // Only fetch player data if we have a valid wallet address
+      if (address !== "Not Connected") {
+        fetchPlayerData(address);
+      }
+    } else {
+      setWalletAddress("Not Connected");
+      setPlayerData(null);
+    }
+  }, [connected, publicKey, apiUrl]);
 
   const truncatedAddress = walletAddress.includes("...")
     ? walletAddress
@@ -70,6 +123,7 @@ export default function HomePage() {
       });
     }
   };
+  console.log(playerData);
 
   return (
     <>
@@ -195,17 +249,19 @@ export default function HomePage() {
                     className="rounded-full"
                   />
                   <div className="ml-4">
-                    {/* Wallet Address */}
+                    {/* Username */}
                     <h3 className="font-semibold text-xl text-white">
-                      {connected ? truncatedAddress : "Not Connected"}
+                      {playerData
+                        ? playerData.player_username
+                        : "Not Connected"}
                     </h3>
-                    {/* Balance display */}
+                    {/* Wallet Address */}
                     <div className="flex items-center">
                       <p className="text-gray-400 text-sm">
                         {connected
                           ? isLoading
                             ? "Loading..."
-                            : `${balance.toFixed(4)} SOL`
+                            : truncatedAddress
                           : "Connect your wallet"}
                       </p>
                       {connected && (
@@ -218,9 +274,6 @@ export default function HomePage() {
                         </button>
                       )}
                     </div>
-
-                    {/* Toast Container */}
-                    <ToastContainer />
                   </div>
                 </div>
 
@@ -243,7 +296,7 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center text-gray-400 text-sm">
                     <FaXTwitter className="mr-2" size={20} />
-                    Jonh_BBUD
+                    {playerData ? playerData.twitter_handle : "N/A"}
                   </div>
                 </div>
 
@@ -255,7 +308,7 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center text-gray-400 text-sm">
                     <FaTelegram className="mr-2" size={20} />
-                    Jonh_Bud
+                    {playerData ? playerData.player_username : "N/A"}
                   </div>
                 </div>
               </div>
@@ -263,7 +316,7 @@ export default function HomePage() {
               {/* Points Section */}
               <div className="border border-green-500 rounded-xl p-4 text-center mb-10 animated-glow-border">
                 <span className="text-2xl font-semibold text-white">
-                  15,430 pts
+                  {playerData ? `${playerData.total_points} pts` : "0 pts"}
                 </span>
               </div>
 
@@ -282,16 +335,11 @@ export default function HomePage() {
                     key={index}
                     className="bg-gray-800 bg-opacity-[30%] rounded-xl p-4 flex justify-between items-center relative overflow-hidden group transition-all duration-300 hover:bg-opacity-50 hover:scale-105 hover:shadow-lg hover:shadow-green-500/20"
                   >
-                    {/* Shine effect overlay */}
                     <div className="absolute -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent via-white opacity-10 group-hover:animate-shine" />
-
-                    {/* Left side with gradient border on hover */}
                     <span className="text-lg text-white group-hover:text-green-400 transition-colors duration-300 relative">
                       {mission.name}
                       <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-green-400 to-blue-500 group-hover:w-full transition-all duration-300"></span>
                     </span>
-
-                    {/* Right side with scale effect on hover */}
                     <span className="text-green-500 text-lg group-hover:scale-110 group-hover:font-bold transition-all duration-300">
                       {mission.points}
                     </span>
@@ -311,7 +359,10 @@ export default function HomePage() {
 
           {/* Game List */}
           <div className="w-full">
-            <GameList />
+            <GameList
+              games={(playerData?.competitions_played as Competition[]) || []}
+              playerData={playerData || undefined}
+            />
           </div>
         </div>
         <Footer />
