@@ -17,7 +17,7 @@ export default function VersusPage() {
         <Navbar />
         <Hero title="Versus" />
         <ActionCards />
-        <GameList />
+        <GameList games={[]} />
       </div>
     </main>
   );

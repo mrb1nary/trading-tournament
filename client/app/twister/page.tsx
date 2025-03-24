@@ -17,7 +17,7 @@ export default function TwisterPage() {
         <Navbar />
         <Hero title="Twister" />
         <ActionCards />
-        <GameList />
+        <GameList games={[]} />
       </div>
     </main>
   );
