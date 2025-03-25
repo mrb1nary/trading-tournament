@@ -1,24 +1,16 @@
-// app/twister/page.tsx
 "use client";
 import React from "react";
-import Navbar from "../components/Navbar";
-import Hero from "../components/Hero";
-import ActionCards from "../components/ActionsCards";
-import GameList from "../components/GameList";
-import "../globals.css";
+import { useSolanaWallet } from "../WalletProvider";
+import VersusPage from "./Versus";
 
-export default function VersusPage() {
+function page() {
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const WalletProvider = useSolanaWallet();
   return (
-    <main className="min-h-screen relative overflow-hidden bg-black">
-      {/* Green circle gradient positioned off-screen */}
-      <div className="absolute w-[150vw] h-[150vw] rounded-full -right-[75vw] top-1/2 -translate-y-1/2 pointer-events-none z-0 gradient-background" />
-
-      <div className="relative z-10">
-        <Navbar />
-        <Hero title="Versus" />
-        <ActionCards />
-        <GameList games={[]} />
-      </div>
-    </main>
+    <WalletProvider>
+      <VersusPage />
+    </WalletProvider>
   );
 }
+
+export default page;
