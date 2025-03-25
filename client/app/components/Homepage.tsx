@@ -48,6 +48,9 @@ export default function HomePage() {
   const { connection } = useConnection();
   const [walletAddress, setWalletAddress] = useState("Not Connected");
   const [balance, setBalance] = useState(0);
+  const [username, setUsername] = useState("");
+  const [tgUsername, setTgUsername] = useState("");
+  const [xUsername, setXUsername] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -56,6 +59,7 @@ export default function HomePage() {
     player_wallet_address: string;
     twitter_handle: string;
     player_username: string;
+    tg_username: string;
     player_email: string;
     total_points: number;
     total_profit: number;
@@ -108,6 +112,14 @@ export default function HomePage() {
   }, [connected, publicKey, apiUrl]);
 
   useEffect(() => {
+    if (playerData) {
+      setUsername(playerData.player_username || "");
+      setTgUsername(playerData.twitter_handle || "");
+      setXUsername(playerData.twitter_handle || "");
+    }
+  }, [playerData]);
+
+  useEffect(() => {
     if (typeof window !== "undefined") {
       Modal.setAppElement(document.body);
     }
@@ -132,7 +144,59 @@ export default function HomePage() {
       });
     }
   };
-  console.log(playerData);
+
+  const handleConfirm = async () => {
+    if (!connected || !publicKey) {
+      toast.error("Wallet not connected");
+      return;
+    }
+
+    try {
+      // Log the data being sent
+      console.log({
+        player_wallet_address: walletAddress,
+        player_username: username,
+        twitter_handle: tgUsername,
+        x_handle: xUsername,
+      });
+
+      // Make the API request
+      const response = await axios.post(`${apiUrl}/updatePlayerInfo`, {
+        player_wallet_address: walletAddress,
+        player_username: username,
+        twitter_handle: tgUsername,
+        x_handle: xUsername,
+      });
+
+      // Handle successful response
+      if (response.data.success) {
+        toast.success("Profile updated successfully!");
+
+        // Update local playerData state with new values
+        if (playerData) {
+          setPlayerData({
+            ...playerData,
+            player_username: username,
+            tg_username: tgUsername,
+            twitter_handle: xUsername,
+          });
+        }
+      } else {
+        toast.error(response.data.message || "Failed to update profile");
+      }
+    } catch (error) {
+      console.error("Error updating player info:", error);
+
+      // Display error message
+      if (axios.isAxiosError(error) && error.response) {
+        toast.error(error.response.data.message || "Failed to update profile");
+      } else {
+        toast.error("An error occurred while updating profile");
+      }
+    } finally {
+      closeModal();
+    }
+  };
 
   return (
     <>
@@ -367,98 +431,128 @@ export default function HomePage() {
               <Modal
                 isOpen={modalIsOpen}
                 onRequestClose={closeModal}
-                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black p-6 rounded-3xl border border-gray-700 max-w-md w-full shadow-lg"
-                overlayClassName="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50"
+                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black p-5 rounded-3xl border border-gray-700 max-w-md w-full shadow-lg animate-fadeIn"
+                overlayClassName="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 animate-backdropBlur"
                 ariaHideApp={false}
+                closeTimeoutMS={300}
               >
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-4 animate-slideDown">
                   <div className="flex items-center">
-                    <img
-                      src="/assets/userIcon.png"
-                      alt="User"
-                      className="w-14 h-14 rounded-full mr-4"
-                    />
-                    <div>
-                      <h2 className="text-2xl font-bold text-white">
-                        {playerData?.player_username || "Paul"}
+                    <div className="relative w-12 h-12 overflow-hidden rounded-full mr-3 border-2 border-green-500 animate-pulse">
+                      <img
+                        src="/assets/userIcon.png"
+                        alt="User"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="animate-fadeIn">
+                      <h2 className="text-xl font-bold text-white bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+                        {username || playerData?.player_username || "Paul"}
                       </h2>
-                      <p className="text-gray-400 text-base">
+                      <p className="text-gray-400 text-sm flex items-center">
                         {truncatedAddress}
+                        <button
+                          onClick={copyWalletAddress}
+                          className="ml-2 text-gray-500 hover:text-green-400 transition-colors"
+                        >
+                          <FiCopy size={12} />
+                        </button>
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={closeModal}
-                    className="text-gray-400 hover:text-white"
+                    className="text-gray-400 hover:text-green-500 transition-all duration-300 transform hover:rotate-90"
                   >
-                    <FiSettings size={28} />
+                    <FiSettings size={24} />
                   </button>
                 </div>
 
-                <div className="bg-gray-800 rounded-full py-3 px-4 mb-6 text-center">
-                  <span className="text-white text-xl font-semibold">
-                    {playerData?.total_points || "15,346"} points
+                <div className="bg-gradient-to-r from-gray-800 to-gray-700 rounded-full py-2 px-4 mb-4 text-center shadow-inner animate-glow">
+                  <span className="text-white text-lg font-semibold">
+                    <span className="text-green-400">
+                      {playerData?.total_points || "15,346"}
+                    </span>{" "}
+                    points
                   </span>
                 </div>
 
-                <div className="mb-4">
-                  <div className="flex justify-evenly space-x-6 mb-2">
-                    <span className="text-green-500 font-semibold text-lg">
+                <div className="mb-3 animate-fadeIn">
+                  <div className="flex justify-evenly space-x-6 mb-1 relative">
+                    <span className="text-green-500 font-semibold text-base cursor-pointer relative after:content-[''] after:absolute after:w-full after:h-0.5 after:bg-green-500 after:bottom-0 after:left-0">
                       Profile
                     </span>
-                    <span className="text-gray-400 text-lg">Missions</span>
+                    <span className="text-gray-400 text-base cursor-pointer hover:text-gray-300 transition-colors">
+                      Missions
+                    </span>
                   </div>
-                  {/* <hr className="border-green-500 border-t-2 w-1/4" /> */}
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-white mb-1 block text-lg">
+                <div className="space-y-3 animate-slideUp">
+                  <div className="transform transition-all duration-300 hover:scale-102">
+                    <label className="text-white mb-1 block text-sm">
+                      Username
+                    </label>
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="w-full bg-gray-700 rounded-full py-2 px-4 text-white text-base border border-transparent focus:border-green-500 focus:outline-none transition-all duration-300"
+                      placeholder="Enter your username"
+                    />
+                  </div>
+                  <div className="transform transition-all duration-300 hover:scale-102">
+                    <label className="text-white mb-1 block text-sm">
                       TG username
                     </label>
                     <input
                       type="text"
-                      value={playerData?.twitter_handle || "Ribbitdotfun"}
-                      readOnly
-                      className="w-full bg-gray-700 rounded-full py-3 px-4 text-white text-lg"
+                      value={tgUsername}
+                      onChange={(e) => setTgUsername(e.target.value)}
+                      className="w-full bg-gray-700 rounded-full py-2 px-4 text-white text-base border border-transparent focus:border-green-500 focus:outline-none transition-all duration-300"
+                      placeholder="Enter your Telegram username"
                     />
                   </div>
-                  <div>
-                    <label className="text-white mb-1 block text-lg">
+                  <div className="transform transition-all duration-300 hover:scale-102">
+                    <label className="text-white mb-1 block text-sm">
                       X Username
                     </label>
                     <input
                       type="text"
-                      value={playerData?.twitter_handle || "Ribbitdotfun"}
-                      readOnly
-                      className="w-full bg-gray-700 rounded-full py-3 px-4 text-white text-lg"
+                      value={xUsername}
+                      onChange={(e) => setXUsername(e.target.value)}
+                      className="w-full bg-gray-700 rounded-full py-2 px-4 text-white text-base border border-transparent focus:border-green-500 focus:outline-none transition-all duration-300"
+                      placeholder="Enter your X username"
                     />
                   </div>
-                  <div>
-                    <label className="text-white mb-1 block text-lg">
+                  <div className="opacity-70">
+                    <label className="text-white mb-1 block text-sm">
                       League
                     </label>
                     <input
                       type="text"
                       value="Incoming"
                       readOnly
-                      className="w-full bg-gray-700 rounded-full py-3 px-4 text-white text-lg"
+                      className="w-full bg-gray-700 rounded-full py-2 px-4 text-white text-base cursor-not-allowed"
                     />
                   </div>
-                  <div>
-                    <label className="text-white mb-1 block text-lg">
+                  <div className="opacity-70">
+                    <label className="text-white mb-1 block text-sm">
                       Friends
                     </label>
                     <input
                       type="text"
                       value="Coming Soon!"
                       readOnly
-                      className="w-full bg-gray-700 rounded-full py-3 px-4 text-white text-lg"
+                      className="w-full bg-gray-700 rounded-full py-2 px-4 text-white text-base cursor-not-allowed"
                     />
                   </div>
                 </div>
 
-                <button className="w-full bg-green-500 text-black font-semibold rounded-full py-3 mt-6 text-lg">
+                <button
+                  className="w-full bg-gradient-to-r from-green-500 to-green-400 text-black font-semibold rounded-full py-2.5 mt-4 text-base transform transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-green-500/20 active:scale-95"
+                  onClick={handleConfirm}
+                >
                   Confirm
                 </button>
               </Modal>

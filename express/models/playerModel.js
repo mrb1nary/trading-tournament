@@ -13,6 +13,11 @@ const PlayerSchema = new mongoose.Schema(
       unique: true,
       maxlength: 15,
     },
+    x_handle: {
+      type: String,
+      unique: true,
+      maxlength: 15,
+    },
     player_email: {
       type: String,
       required: true,
