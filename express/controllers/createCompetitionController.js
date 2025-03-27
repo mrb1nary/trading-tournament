@@ -5,139 +5,141 @@ dotenv.config();
 
 export const createCompetitionController = async (req, res) => {
   try {
-    // Extract competition details from the request body
     const {
-      authority, // Public key of the competition creator
-      entry_fee, // Entry fee in lamports
-      base_amount, // Base amount in lamports
-      start_time, // UNIX timestamp for start time
-      end_time, // UNIX timestamp for end time
-      winning_amount, // Winning amount in lamports
-      category, // Competition category
-    } = req.body;
-
-    // Validate required fields
-    if (
-      !authority ||
-      !entry_fee ||
-      !base_amount ||
-      !start_time ||
-      !end_time ||
-      !winning_amount ||
-      !category
-    ) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    // Validate numeric fields
-    if (
-      isNaN(entry_fee) ||
-      isNaN(base_amount) ||
-      isNaN(start_time) ||
-      isNaN(end_time) ||
-      isNaN(winning_amount)
-    ) {
-      return res.status(400).json({ error: "Invalid numeric values provided" });
-    }
-
-    // Validate category
-    const validCategories = [
-      "TwoPlayers",
-      "SixPlayers",
-      "TwelvePlayers",
-      "TwentyFivePlayers",
-    ];
-
-    if (!validCategories.includes(category)) {
-      return res.status(400).json({ error: "Invalid competition category" });
-    }
-
-    // Generate a unique ID for the competition
-    const competitionId = Math.floor(Math.random() * 1000000);
-
-    // Determine max_players based on category
-    let max_players;
-    switch (category) {
-      case "TwoPlayers":
-        max_players = 2;
-        break;
-      case "SixPlayers":
-        max_players = 6;
-        break;
-      case "TwelvePlayers":
-        max_players = 12;
-        break;
-      case "TwentyFivePlayers":
-        max_players = 25;
-        break;
-      default:
-        return res.status(400).json({ error: "Invalid competition category" });
-    }
-
-    // Initialize competition object
-    const newCompetition = new Competition({
       authority,
-      id: competitionId,
-      max_players,
-      current_players: 0, // Will be updated for TwoPlayers after finding player
       entry_fee,
       base_amount,
-      start_time: new Date(start_time * 1000),
-      end_time: new Date(end_time * 1000),
+      start_time,
+      end_time,
       winning_amount,
       category,
-      winner: null,
+    } = req.body;
+
+    // Validation middleware-style checks
+    const missingFields = [];
+    if (!authority) missingFields.push("authority");
+    if (!entry_fee) missingFields.push("entry_fee");
+    if (!base_amount) missingFields.push("base_amount");
+    if (!start_time) missingFields.push("start_time");
+    if (!end_time) missingFields.push("end_time");
+    if (!winning_amount) missingFields.push("winning_amount");
+    if (!category) missingFields.push("category");
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        error: `Missing required fields: ${missingFields.join(", ")}`,
+        code: "MISSING_FIELDS",
+      });
+    }
+
+    // Numeric validation with explicit checks
+    const numericFields = {
+      entry_fee: Number(entry_fee),
+      base_amount: Number(base_amount),
+      start_time: Number(start_time),
+      end_time: Number(end_time),
+      winning_amount: Number(winning_amount),
+    };
+
+    for (const [field, value] of Object.entries(numericFields)) {
+      if (isNaN(value) || value < 0) {
+        return res.status(400).json({
+          error: `Invalid value for ${field.replace("_", " ")}`,
+          code: "INVALID_NUMERIC_VALUE",
+        });
+      }
+    }
+
+    // Category validation
+    const categoryMap = {
+      TwoPlayers: 2,
+      SixPlayers: 6,
+      TwelvePlayers: 12,
+      TwentyFivePlayers: 25,
+    };
+
+    if (!categoryMap[category]) {
+      return res.status(400).json({
+        error: "Invalid competition category",
+        validCategories: Object.keys(categoryMap),
+        code: "INVALID_CATEGORY",
+      });
+    }
+
+    // Generate unique competition ID
+    const competitionId =
+      (Date.now() % 1000000) + Math.floor(Math.random() * 1000);
+
+    // Base competition object
+    const competitionData = {
+      authority,
+      id: competitionId,
+      max_players: categoryMap[category],
+      entry_fee: numericFields.entry_fee,
+      base_amount: numericFields.base_amount,
+      start_time: new Date(numericFields.start_time * 1000),
+      end_time: new Date(numericFields.end_time * 1000),
+      winning_amount: numericFields.winning_amount,
+      category,
+      active: true, // New active field
       payout_claimed: false,
-      participants: [], // Will be updated for TwoPlayers after finding player
-    });
+      participants: [],
+    };
 
-    // For TwoPlayers category, add the creator as the first participant
+    // Handle TwoPlayers special case
     if (category === "TwoPlayers") {
-      // Find the player by wallet address
-      const player = await Player.findOne({ player_wallet_address: authority });
+      const player = await Player.findOne({
+        player_wallet_address: authority,
+      })
+        .select("_id")
+        .lean();
 
-      // If player doesn't exist, return error
       if (!player) {
         return res.status(404).json({
-          error: "Player not found",
-          message:
-            "You need to sign up on the platform before creating a competition",
+          error: "Player profile required for versus mode",
+          solution: "Complete player registration first",
+          code: "PLAYER_NOT_FOUND",
         });
       }
 
-      // Add the player to participants and increment the counter
-      newCompetition.participants.push(player._id);
-      newCompetition.current_players = 1;
+      competitionData.participants.push({ player: player._id });
+      competitionData.current_players = 1;
     }
 
-    // Save the competition to the database
-    await newCompetition.save();
+    // Create competition
+    const newCompetition = await Competition.create(competitionData);
 
-    // Prepare response object
-    const responseData = {
-      message: "Competition created successfully",
-      competition: newCompetition,
+    // Response structure
+    const response = {
+      success: true,
+      competition_id: newCompetition.id,
+      details: {
+        entry_fee: `${numericFields.entry_fee / 1e9} SOL`,
+        prize_pool: `${numericFields.base_amount / 1e9} SOL`,
+        duration: `${Math.floor(
+          (numericFields.end_time - numericFields.start_time) / 3600
+        )} hours`,
+        max_players: categoryMap[category],
+      },
     };
 
-    // Add competition_id to response for TwoPlayers category (versus mode)
-    if (category === "TwoPlayers") {
-      responseData.competition_id = competitionId;
-    }
-
-    // Respond with success
-    res.status(201).json(responseData);
+    res.status(201).json(response);
   } catch (error) {
-    console.error("Error creating competition:", error);
+    console.error("Competition creation error:", error);
 
-    // Handle specific errors
     if (error.code === 11000) {
-      // Mongoose duplicate key error (e.g., unique `id` conflict)
-      return res
-        .status(400)
-        .json({ error: "Competition ID already exists in the database" });
+      return res.status(409).json({
+        error: "Competition ID collision detected",
+        solution: "Retry with new parameters",
+        code: "ID_CONFLICT",
+      });
     }
 
-    // General error response
-    res.status(500).json({ error: "Failed to create competition" });
+    res.status(500).json({
+      error: "Competition creation failed",
+      systemMessage: error.message,
+      code: "INTERNAL_ERROR",
+    });
   }
 };
+

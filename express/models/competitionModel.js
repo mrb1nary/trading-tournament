@@ -6,6 +6,18 @@ const CompetitionSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
+  active: {
+    type: Boolean,
+    required: true,
+    default: true,
+    validate: {
+      validator: function (v) {
+        // Active can only be false if competition has ended
+        return v === true || this.end_time < new Date();
+      },
+      message: "Competition can only be deactivated after end time",
+    },
+  },
   id: {
     type: Number,
     required: true,

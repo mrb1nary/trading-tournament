@@ -10,6 +10,7 @@ import registerPlayerRoute from "./routes/registerPlayerInCompetitionRoute.js";
 import snapshotRoute from "./routes/snapshot.js";
 import updatePlayerInfo from "./routes/updatePlayerInfo.js";
 import fetchPlayer from "./routes/fetchPlayer.js";
+import fetchCompetition from "./routes/fetchCompetition.js";
 import { dbConnect } from "./config/dbConfig.js";
 
 const app = express();
@@ -17,6 +18,7 @@ dbConnect();
 app.use(cors());
 app.use(express.json());
 app.use("/api", fetchTxRouter);
+app.use("/api", fetchCompetition);
 app.use("/api", fetchPlayer);
 app.use("/api", updatePlayerInfo);
 app.use("/api", determineWinnerRouter);
