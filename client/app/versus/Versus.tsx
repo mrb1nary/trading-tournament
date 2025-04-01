@@ -77,7 +77,7 @@ export default function VersusPage() {
 
       <Navbar />
       <div className="container mx-auto px-6 py-8 relative z-10 flex flex-col items-center">
-        <Hero title="Versus" />
+        <Hero title="Versus" subtitle="Mode" />
         <ActionCards />
         {isLoading ? (
           <div className="w-full text-center py-8">

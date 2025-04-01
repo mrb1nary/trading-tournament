@@ -54,7 +54,7 @@ const MyCompetitionTable: React.FC<MyCompetitionTableProps> = ({
 
           {/* Table Body */}
           <tbody>
-            {competitions.length > 0 ? (
+            {competitions && competitions.length > 0 ? (
               competitions.map((competition, index) => (
                 <tr
                   key={competition.id}
@@ -78,8 +78,13 @@ const MyCompetitionTable: React.FC<MyCompetitionTableProps> = ({
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="py-6 px-6 text-center text-gray-400">
-                  No game yet
+                <td colSpan={6} className="py-10 px-6 text-center">
+                  <div className="flex flex-col items-center justify-center">
+                    <p className="text-gray-400 text-lg mb-2">No games yet</p>
+                    <p className="text-green-500 font-medium">
+                      Good luck on your first competition!
+                    </p>
+                  </div>
                 </td>
               </tr>
             )}

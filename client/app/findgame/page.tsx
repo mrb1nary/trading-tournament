@@ -1,14 +1,14 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 "use client";
 import React from "react";
 import { useSolanaWallet } from "../WalletProvider";
-import CompetitionMode from "./Competition";
+import FindGame from "./FindGame";
 
 function page() {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const WalletProvider = useSolanaWallet();
   return (
     <WalletProvider>
-      <CompetitionMode />
+      <FindGame />
     </WalletProvider>
   );
 }

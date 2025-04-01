@@ -41,8 +41,6 @@ interface PlayerData {
   competitions_played: Competition[];
 }
 
-
-
 export default function TwisterPage() {
   const { connected, publicKey } = useWallet();
   const [playerData, setPlayerData] = useState<PlayerData | null>(null);
@@ -79,7 +77,7 @@ export default function TwisterPage() {
 
       <Navbar />
       <div className="container mx-auto px-6 py-8 relative z-10 flex flex-col items-center">
-        <Hero title="Twister" />
+        <Hero title="Twister" subtitle="Mode" />
         <ActionCards />
         {isLoading ? (
           <div className="w-full text-center py-8">
@@ -103,4 +101,3 @@ export default function TwisterPage() {
     </main>
   );
 }
-

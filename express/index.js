@@ -14,6 +14,8 @@ import fetchCompetition from "./routes/fetchCompetition.js";
 import { dbConnect } from "./config/dbConfig.js";
 
 const app = express();
+const PORT = 3001;
+
 dbConnect();
 app.use(cors());
 app.use(express.json());
@@ -29,6 +31,6 @@ app.use("/api", signupPlayerRoute);
 app.use("/api", registerPlayerRoute);
 app.use("/api", snapshotRoute);
 
-app.listen(3001, () => {
-  console.log("Server is running on port 3001");
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
