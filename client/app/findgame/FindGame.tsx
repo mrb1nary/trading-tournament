@@ -1,7 +1,9 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
+import { Dropdown, DropdownItem } from "flowbite-react";
+import { FaSearch } from "react-icons/fa";
 
 interface Competition {
   _id: string;
@@ -21,17 +23,19 @@ interface Competition {
   participants: unknown[];
 }
 
-
-
 function FindGame() {
-  const [searchQuery, setSearchQuery] = useState(""); // State to track the search input
-  const [isFocused, setIsFocused] = useState(false); // State to handle focus animation
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
-  const [filteredCompetitions, setFilteredCompetitions] = useState<
-    Competition[]
-  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Filter states
+  const [activeTimeFilter, setActiveTimeFilter] = useState("All");
+  const [activeBaseAmountFilter, setActiveBaseAmountFilter] = useState("All");
+  const [activeCashPrizeFilter, setActiveCashPrizeFilter] = useState("All");
+
+  const [searchFiltered, setSearchFiltered] = useState<Competition[]>([]);
 
   const handleInputChange = (e: {
     target: { value: React.SetStateAction<string> };
@@ -41,20 +45,20 @@ function FindGame() {
 
   const handleKeyPress = (e: { key: string }) => {
     if (e.key === "Enter") {
-      filterCompetitions(searchQuery);
+      filterCompetitionsBySearch(searchQuery);
     }
   };
 
-  const filterCompetitions = (query: string) => {
+  const filterCompetitionsBySearch = (query: string) => {
     if (!query.trim()) {
-      setFilteredCompetitions(competitions.slice(0, 10));
+      setSearchQuery("");
       return;
     }
 
-    const filtered = competitions.filter((competition) =>
+    const searchFiltered = filteredCompetitions.filter((competition) =>
       competition.id.toString().includes(query.trim())
     );
-    setFilteredCompetitions(filtered);
+    setSearchFiltered(searchFiltered);
   };
 
   useEffect(() => {
@@ -70,12 +74,9 @@ function FindGame() {
         }
 
         const data = await response.json();
-
-        // Check if data has a competitions property
         const competitionsArray = data.competitions || [];
-
         setCompetitions(competitionsArray);
-        setFilteredCompetitions(competitionsArray.slice(0, 10));
+        setSearchFiltered([]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         console.error("Error fetching competitions:", err);
@@ -98,11 +99,17 @@ function FindGame() {
     );
   };
 
-  // Calculate time difference in minutes
-  const getTimeDifference = (start: string, end: string) => {
+  // Calculate time difference in hours
+  const getTimeDifferenceInHours = (start: string, end: string) => {
     const startTime = new Date(start).getTime();
     const endTime = new Date(end).getTime();
-    return Math.ceil((endTime - startTime) / (1000 * 60)) + " min";
+    return Math.ceil((endTime - startTime) / (1000 * 60 * 60));
+  };
+
+  // Calculate time difference for display
+  const getTimeDifference = (start: string, end: string) => {
+    const hours = getTimeDifferenceInHours(start, end);
+    return `${hours} hour${hours !== 1 ? "s" : ""}`;
   };
 
   // Calculate start in time
@@ -120,34 +127,189 @@ function FindGame() {
     return hours + " hours";
   };
 
+  // Filter competitions based on all active filters
+  const filteredCompetitions = useMemo(() => {
+    return competitions.filter((comp) => {
+      // Time filter
+      if (activeTimeFilter !== "All") {
+        const hours = parseInt(activeTimeFilter.replace("h", ""));
+        const compHours = getTimeDifferenceInHours(
+          comp.start_time,
+          comp.end_time
+        );
+        if (compHours !== hours) return false;
+      }
+
+      // Base amount filter
+      if (activeBaseAmountFilter !== "All") {
+        const amount = parseInt(activeBaseAmountFilter.replace(" USDT", ""));
+        if (comp.base_amount !== amount) return false;
+      }
+
+      // Cash prize filter
+      if (activeCashPrizeFilter !== "All") {
+        const prize = parseFloat(activeCashPrizeFilter.replace(" SOL", ""));
+        if (comp.winning_amount !== prize) return false;
+      }
+
+      return true;
+    });
+  }, [
+    activeTimeFilter,
+    activeBaseAmountFilter,
+    activeCashPrizeFilter,
+    competitions,
+  ]);
+
+  // Determine which competitions to display
+  const displayedCompetitions = useMemo(() => {
+    if (searchQuery && searchFiltered.length > 0) {
+      return searchFiltered;
+    }
+    return filteredCompetitions;
+  }, [searchQuery, searchFiltered, filteredCompetitions]);
+
+  // Reset all filters
+  const resetFilters = () => {
+    setActiveTimeFilter("All");
+    setActiveBaseAmountFilter("All");
+    setActiveCashPrizeFilter("All");
+    setSearchQuery("");
+    setSearchFiltered([]);
+  };
+
   return (
     <main className="min-h-screen relative overflow-hidden bg-black text-white">
-      {/* Green circle gradient positioned off-screen */}
       <div className="absolute w-[150vw] h-[150vw] rounded-full -right-[75vw] top-1/2 -translate-y-1/2 pointer-events-none z-0 gradient-background" />
 
-      {/* Navbar and Hero */}
       <div className="relative z-10">
         <Navbar />
         <Hero title="Find a" subtitle="Game" />
 
         {/* Search Bar */}
         <div className="mt-6 flex justify-center">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyPress}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            placeholder="Enter Game ID"
-            className={`transition-all duration-300 bg-gray-800 text-white placeholder-gray-500 border border-gray-600 rounded-full py-3 px-6 text-center ${
-              isFocused ? "w-96" : "w-80"
-            } focus:outline-none focus:ring-2 focus:ring-green-500`}
-          />
+          <div className="relative">
+            <FaSearch
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 h-full w-6 text-gray-400"
+              aria-hidden="true"
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyPress}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              placeholder="Enter Game ID"
+              className={`transition-all duration-300 bg-gray-800 text-white placeholder-gray-500 border border-gray-600 rounded-full py-3 pl-12 pr-6 text-center ${
+                isFocused ? "w-306 h-20" : "w-256 h-15"
+              } focus:outline-none focus:border-green-500 focus:shadow-[0_0_20px_2px_rgba(34,197,94,0.5)] hover:shadow-[0_0_10px_rgba(34,197,94,0.3)] hover:border-green-400`}
+            />
+          </div>
+        </div>
+
+        {/* Filter Section */}
+        <div className="mt-8 max-w-[1200px] mx-auto flex justify-center space-x-6 flex-wrap">
+          {/* Time Filter Dropdown */}
+          <div className="mb-4">
+            <Dropdown
+              className="z-50"
+              dismissOnClick={true}
+              renderTrigger={() => (
+                <button className="px-4 py-2 bg-gray-800 text-white rounded-full transition-all duration-300 hover:bg-gray-700 hover:shadow-[0_0_15px_rgba(34,197,94,0.5)] focus:outline-none focus:ring-2 focus:ring-green-500">
+                  Time: {activeTimeFilter}
+                  <span className="ml-2 inline-block transition-transform duration-300 group-hover:rotate-180">
+                    ▼
+                  </span>
+                </button>
+              )}
+            >
+              {["All", "1h", "3h", "6h", "12h", "24h"].map((option) => (
+                <DropdownItem
+                  key={`time-${option}`}
+                  onClick={() => {
+                    setActiveTimeFilter(option);
+                    setSearchFiltered([]);
+                  }}
+                  className="hover:bg-green-500 hover:text-black transition-colors duration-300"
+                >
+                  {option}
+                </DropdownItem>
+              ))}
+            </Dropdown>
+          </div>
+
+          {/* Base Amount Filter Dropdown */}
+          <div className="mb-4">
+            <Dropdown
+              className="z-50"
+              dismissOnClick={true}
+              renderTrigger={() => (
+                <button className="px-4 py-2 bg-gray-800 text-white rounded-full transition-all duration-300 hover:bg-gray-700 hover:shadow-[0_0_15px_rgba(34,197,94,0.5)] focus:outline-none focus:ring-2 focus:ring-green-500">
+                  Base Amount: {activeBaseAmountFilter}
+                  <span className="ml-2 inline-block transition-transform duration-300 group-hover:rotate-180">
+                    ▼
+                  </span>
+                </button>
+              )}
+            >
+              {["All", "10 USDT", "25 USDT", "50 USDT"].map((option) => (
+                <DropdownItem
+                  key={`base-${option}`}
+                  onClick={() => {
+                    setActiveBaseAmountFilter(option);
+                    setSearchFiltered([]);
+                  }}
+                  className="hover:bg-green-500 hover:text-black transition-colors duration-300"
+                >
+                  {option}
+                </DropdownItem>
+              ))}
+            </Dropdown>
+          </div>
+
+          {/* Cash Prize Filter Dropdown */}
+          <div className="mb-4">
+            <Dropdown
+              className="z-50"
+              dismissOnClick={true}
+              renderTrigger={() => (
+                <button className="px-4 py-2 bg-gray-800 text-white rounded-full transition-all duration-300 hover:bg-gray-700 hover:shadow-[0_0_15px_rgba(34,197,94,0.5)] focus:outline-none focus:ring-2 focus:ring-green-500">
+                  Cash Prize: {activeCashPrizeFilter}
+                  <span className="ml-2 inline-block transition-transform duration-300 group-hover:rotate-180">
+                    ▼
+                  </span>
+                </button>
+              )}
+            >
+              {["All", "0.5 SOL", "1 SOL", "2 SOL"].map((option) => (
+                <DropdownItem
+                  key={`prize-${option}`}
+                  onClick={() => {
+                    setActiveCashPrizeFilter(option);
+                    setSearchFiltered([]);
+                  }}
+                  className="hover:bg-green-500 hover:text-black transition-colors duration-300"
+                >
+                  {option}
+                </DropdownItem>
+              ))}
+            </Dropdown>
+          </div>
+
+          {/* Reset Filters Button */}
+          <div className="mb-4">
+            <button
+              onClick={resetFilters}
+              className="px-4 py-2 bg-red-600 text-white rounded-full transition-all duration-300 hover:bg-red-700 hover:shadow-[0_0_15px_rgba(239,68,68,0.5)] focus:outline-none focus:ring-2 focus:ring-red-500"
+            >
+              Reset Filters
+            </button>
+          </div>
         </div>
 
         {/* Competition Table */}
-        <div className="mt-10">
+        <div className="mt-12">
           <div className="max-w-[1200px] mx-auto bg-[#000000] rounded-lg z-10 relative shadow-lg p-4">
             {/* Header Row */}
             <div className="grid grid-cols-[3fr_3fr_2fr_2fr_3fr] gap-x-[40px] items-center py-4 my-5 px-6 justify-center text-2xl text-white font-extrabold">
@@ -165,8 +327,8 @@ function FindGame() {
               </div>
             ) : error ? (
               <div className="text-center py-8 text-red-500">{error}</div>
-            ) : filteredCompetitions.length > 0 ? (
-              filteredCompetitions.map((competition, index) => (
+            ) : displayedCompetitions.length > 0 ? (
+              displayedCompetitions.map((competition, index) => (
                 <div
                   key={index}
                   className={`grid grid-cols-[3fr_3fr_2fr_2fr_3fr] gap-x-[40px] items-center py-4 my-5 px-6 rounded-full bg-[#262D31]
@@ -190,7 +352,9 @@ function FindGame() {
               ))
             ) : (
               <div className="text-center py-8 text-gray-400">
-                No competitions found
+                {searchQuery
+                  ? "No competitions found matching your search"
+                  : "No competitions found matching your filters"}
               </div>
             )}
           </div>
