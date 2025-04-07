@@ -5,17 +5,28 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { motion } from "framer-motion";
+
+interface GameData {
+  entry_fee: number;
+  base_amount: number;
+  start_time: number | null;
+  end_time: number | null;
+  winning_amount: number;
+  category: string;
+  custom_entry_fee: string;
+  custom_base_amount: string;
+}
 
 function CreateGame() {
   const wallet = useWallet();
   const PLATFORM_FEE_PERCENTAGE = 10; // 10%
 
   // Map category to number of players
-  const categoryToPlayers = {
+  const categoryToPlayers: Record<string, number> = {
     TwoPlayers: 2,
     FourPlayers: 4,
     SixPlayers: 6,
@@ -23,14 +34,22 @@ function CreateGame() {
     TwentyFivePlayers: 25,
   };
 
-  const calculateMaxWinningAmount = (entryFee, category) => {
-    const totalPlayers = categoryToPlayers[category];
-    const totalPool = entryFee * totalPlayers;
-    const platformFee = totalPool * (PLATFORM_FEE_PERCENTAGE / 100);
-    return totalPool - platformFee;
+  const calculateMaxWinningAmount = (
+    entryFee: number,
+    category: string
+  ): number => {
+    try {
+      const totalPlayers = categoryToPlayers[category];
+      const totalPool = entryFee * totalPlayers;
+      const platformFee = totalPool * (PLATFORM_FEE_PERCENTAGE / 100);
+      return totalPool - platformFee;
+    } catch (error) {
+      console.error("Error calculating winning amount:", error);
+      return 0;
+    }
   };
 
-  const [gameData, setGameData] = useState({
+  const [gameData, setGameData] = useState<GameData>({
     entry_fee: 0.05,
     base_amount: 10,
     start_time: null,
@@ -52,82 +71,101 @@ function CreateGame() {
 
   // Update winning amount when entry fee or category changes
   useEffect(() => {
-    const maxWinningAmount = calculateMaxWinningAmount(
-      gameData.entry_fee,
-      gameData.category
-    );
-    setGameData((prevData) => ({
-      ...prevData,
-      winning_amount: maxWinningAmount,
-    }));
+    try {
+      const maxWinningAmount = calculateMaxWinningAmount(
+        gameData.entry_fee,
+        gameData.category
+      );
+      setGameData((prevData) => ({
+        ...prevData,
+        winning_amount: maxWinningAmount,
+      }));
+    } catch (error) {
+      console.error("Error updating winning amount:", error);
+    }
   }, [gameData.entry_fee, gameData.category]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    try {
+      const { name, value } = e.target;
 
-    if (name === "entry_fee") {
-      if (value === "custom") {
-        setIsCustomEntryFee(true);
+      if (name === "entry_fee") {
+        if (value === "custom") {
+          setIsCustomEntryFee(true);
+        } else {
+          setIsCustomEntryFee(false);
+          setGameData({ ...gameData, entry_fee: parseFloat(value) });
+        }
+      } else if (name === "custom_entry_fee") {
+        setGameData({
+          ...gameData,
+          entry_fee: parseFloat(value),
+          custom_entry_fee: value,
+        });
+      } else if (name === "base_amount") {
+        if (value === "custom") {
+          setIsCustomBaseAmount(true);
+        } else {
+          setIsCustomBaseAmount(false);
+          setGameData({ ...gameData, base_amount: parseInt(value) });
+        }
+      } else if (name === "custom_base_amount") {
+        setGameData({
+          ...gameData,
+          base_amount: parseInt(value),
+          custom_base_amount: value,
+        });
       } else {
-        setIsCustomEntryFee(false);
-        setGameData({ ...gameData, entry_fee: parseFloat(value) });
+        setGameData({ ...gameData, [name]: value });
       }
-    } else if (name === "custom_entry_fee") {
-      setGameData({
-        ...gameData,
-        entry_fee: parseFloat(value),
-        custom_entry_fee: value,
-      });
-    } else if (name === "base_amount") {
-      if (value === "custom") {
-        setIsCustomBaseAmount(true);
-      } else {
-        setIsCustomBaseAmount(false);
-        setGameData({ ...gameData, base_amount: parseInt(value) });
-      }
-    } else if (name === "custom_base_amount") {
-      setGameData({
-        ...gameData,
-        base_amount: parseInt(value),
-        custom_base_amount: value,
-      });
-    } else {
-      setGameData({ ...gameData, [name]: value });
+    } catch (error) {
+      console.error("Error handling input change:", error);
     }
   };
 
-  const handleDateChange = (name, newValue) => {
-    setGameData({
-      ...gameData,
-      [name]: newValue ? newValue.unix() : null,
-    });
+  const handleDateChange = (name: keyof GameData, newValue: Dayjs | null) => {
+    try {
+      setGameData({
+        ...gameData,
+        [name]: newValue ? newValue.unix() : null,
+      });
+    } catch (error) {
+      console.error("Error handling date change:", error);
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!wallet.connected) {
-      toast.error("Please connect your wallet first!");
-      return;
+    try {
+      if (!wallet.connected) {
+        toast.error("Please connect your wallet first!");
+        return;
+      }
+
+      if (!gameData.start_time || !gameData.end_time) {
+        toast.error("Please select both start and end times");
+        return;
+      }
+
+      const finalGameData = {
+        authority: wallet.publicKey?.toString(),
+        entry_fee: gameData.entry_fee,
+        base_amount: gameData.base_amount,
+        start_time: gameData.start_time,
+        end_time: gameData.end_time,
+        winning_amount: parseFloat(gameData.winning_amount.toFixed(3)),
+        category: gameData.category,
+      };
+
+      console.log(finalGameData);
+      toast.success("Game created successfully!");
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      toast.error("An error occurred while creating the game.");
     }
-
-    if (!gameData.start_time || !gameData.end_time) {
-      toast.error("Please select both start and end times");
-      return;
-    }
-
-    const finalGameData = {
-      authority: wallet.publicKey.toString(),
-      entry_fee: gameData.entry_fee,
-      base_amount: gameData.base_amount,
-      start_time: gameData.start_time,
-      end_time: gameData.end_time,
-      winning_amount: parseFloat(gameData.winning_amount.toFixed(3)),
-      category: gameData.category,
-    };
-
-    console.log(finalGameData);
-    toast.success("Game created successfully!");
   };
 
   const categoryOptions = [
@@ -151,7 +189,6 @@ function CreateGame() {
     { value: 50, label: "50 USDT" },
     { value: "custom", label: "Custom" },
   ];
-
   return (
     <main className="min-h-screen relative overflow-hidden bg-gradient-to-br from-gray-900 to-black text-white">
       <div className="absolute w-[150vw] h-[150vw] rounded-full -right-[75vw] top-1/2 -translate-y-1/2 pointer-events-none z-0 gradient-background" />
@@ -405,6 +442,7 @@ function CreateGame() {
                 value={gameData.end_time ? dayjs.unix(gameData.end_time) : null}
                 onChange={(newValue) => handleDateChange("end_time", newValue)}
                 className="w-full"
+                //@ts-expect-error IDK I will fix it later
                 minDateTime={
                   gameData.start_time ? dayjs.unix(gameData.start_time) : null
                 }
@@ -468,20 +506,3 @@ function CreateGame() {
 }
 
 export default CreateGame;
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
