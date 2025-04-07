@@ -12,7 +12,7 @@ function page() {
     <WalletProvider>
       <Navbar />
       <MyGames />
-      <Footer />
+      
     </WalletProvider>
   );
 }
