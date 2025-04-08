@@ -5,17 +5,22 @@ import { FaCreditCard, FaWallet } from "react-icons/fa";
 import { FiExternalLink } from "react-icons/fi";
 import { HiCheck } from "react-icons/hi";
 import { format, parse } from "date-fns";
+import axios from "axios";
 
-interface Asset {
-  mint: string;
-  amount: number;
-  decimals: number;
-}
+
 
 interface Transaction {
   signature: string;
   date: string | null;
   status: string;
+}
+
+interface Asset {
+  mint: string;
+  amount: number;
+  decimals: number;
+  price?: number;
+  name?: string;
 }
 
 function MyGames() {
@@ -26,6 +31,8 @@ function MyGames() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const connection = new Connection("https://api.devnet.solana.com");
+  const HELIUS_API_KEY = process.env.NEXT_PUBLIC_HELIUS_API_KEY;
+  const HELIUS_RPC_URL = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
 
   function formatDate(dateString: string): string {
     console.log("Input to formatDate:", dateString); // Log input
@@ -54,48 +61,121 @@ function MyGames() {
     }
   }
 
-  useEffect(() => {
-    const fetchAssets = async () => {
-      if (!publicKey) return;
+const fetchTokenPrices = async (mints: string[]) => {
+  try {
+    const validMints = mints.filter((mint) => mint.length > 0);
 
-      try {
-        // Fetch SOL balance
-        const solBalanceLamports = await connection.getBalance(publicKey);
-        const solBalance = solBalanceLamports / LAMPORTS_PER_SOL;
-
-        // Fetch SPL tokens
-        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-          publicKey,
-          {
-            programId: new PublicKey(
-              "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-            ), // SPL Token Program ID
-          }
-        );
-
-        const splTokens = tokenAccounts.value.map((account) => {
-          const info = account.account.data.parsed.info;
-          return {
-            mint: info.mint,
-            amount: info.tokenAmount.uiAmount || 0,
-            decimals: info.tokenAmount.decimals || 0,
-          };
-        });
-
-        // Combine SOL and SPL tokens
-        const combinedAssets: Asset[] = [
-          { mint: "SOL", amount: solBalance, decimals: 9 }, // Add SOL as an asset
-          ...splTokens,
-        ];
-
-        setAssets(combinedAssets);
-      } catch (error) {
-        console.error("Failed to fetch assets:", error);
+    const response = await axios.post(
+      HELIUS_RPC_URL,
+      {
+        jsonrpc: "2.0",
+        id: "price-fetch",
+        method: "getAssetBatch",
+        params: {
+          ids: validMints,
+        },
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${HELIUS_API_KEY}`,
+        },
       }
-    };
+    );
 
-    fetchAssets();
-  }, [publicKey]);
+    if (!response.data?.result) {
+      console.error("Invalid API response format");
+      return {};
+    }
+
+    return response.data.result.reduce(
+      (acc: { [key: string]: number }, token: any) => {
+        // Check for price in token_info.price_info.price_per_token
+        if (token?.id && token?.token_info?.price_info?.price_per_token) {
+          acc[token.id] = token.token_info.price_info.price_per_token;
+        }
+        return acc;
+      },
+      {}
+    );
+  } catch (error) {
+    console.error("Error fetching prices:", error);
+    if (error.response) {
+      console.error("Response status:", error.response.status);
+    }
+    return {};
+  }
+};
+
+
+
+
+
+// Update the assets processing in useEffect
+useEffect(() => {
+  const fetchAssets = async () => {
+    if (!publicKey) return;
+
+    try {
+      setLoading(true);
+
+      // Fetch SOL balance
+      const solBalanceLamports = await connection.getBalance(publicKey);
+      const solBalance = solBalanceLamports / LAMPORTS_PER_SOL;
+
+      // Fetch SPL tokens
+      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+        publicKey,
+        {
+          programId: new PublicKey(
+            "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          ),
+        }
+      );
+
+      const splTokens = tokenAccounts.value.map((account) => {
+        const info = account.account.data.parsed.info;
+        return {
+          mint: info.mint,
+          amount: info.tokenAmount.uiAmount || 0,
+          decimals: info.tokenAmount.decimals || 0,
+        };
+      });
+
+      // Combine assets with proper SOL mint address
+      const combinedAssets = [
+        {
+          mint: "So11111111111111111111111111111111111111112",
+          amount: solBalance,
+          decimals: 9,
+        },
+        ...splTokens,
+      ];
+
+      // Fetch prices
+      const prices = await fetchTokenPrices(combinedAssets.map((a) => a.mint));
+
+      const assetsWithPrices = combinedAssets.map((asset) => ({
+        ...asset,
+        price: prices[asset.mint] || 0,
+        name:
+          asset.mint === "So11111111111111111111111111111111111111112"
+            ? "SOL"
+            : asset.mint.slice(0, 4) + "...",
+      }));
+
+      setAssets(assetsWithPrices);
+    } catch (error) {
+      console.error("Failed to fetch assets:", error);
+      setError("Failed to load assets.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  fetchAssets();
+}, [publicKey]);
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -126,6 +206,8 @@ function MyGames() {
 
     fetchTransactions();
   }, [publicKey]);
+
+  
 
   return (
     <div className="bg-[#0d1117] min-h-screen text-white">
@@ -310,9 +392,11 @@ function MyGames() {
                     Wallet · Connected Assets
                   </h3>
                 </div>
-                <div className="grid grid-cols-2 text-gray-400 text-sm pb-2 px-2">
+                <div className="grid grid-cols-4 text-gray-400 text-sm pb-2 px-2">
                   <span className="text-left">ASSET</span>
                   <span className="text-right">BALANCE</span>
+                  <span className="text-right">PRICE (USD)</span>
+                  <span className="text-right">VALUE (USD)</span>
                 </div>
                 <div className="border-t border-[#30363d] mt-1"></div>
 
@@ -321,20 +405,19 @@ function MyGames() {
                   assets.map((asset, index) => (
                     <div
                       key={index}
-                      className="grid grid-cols-2 items-center text-gray-300 text-sm py-2 px-2 rounded-md hover:bg-[#1c2128] hover:scale-[1.02] transition-all duration-200"
+                      className="grid grid-cols-4 items-center text-gray-300 text-sm py-2 px-2 rounded-md hover:bg-[#1c2128] hover:scale-[1.02] transition-all duration-200"
                     >
                       <span className="text-left font-medium">
-                        {asset.mint === "SOL" ? (
-                          <span className="text-green-400">Solana (SOL)</span>
-                        ) : (
-                          asset.mint
-                        )}
+                        {asset.name || asset.mint.slice(0, 4) + "..."}
                       </span>
                       <span className="text-right font-semibold">
-                        {asset.amount.toFixed(
-                          asset.mint === "SOL" ? 4 : asset.decimals
-                        )}{" "}
-                        {asset.mint === "SOL" ? "SOL" : ""}
+                        {asset.amount.toFixed(4)}
+                      </span>
+                      <span className="text-right font-semibold">
+                        ${(asset.price || 0).toFixed(2)}
+                      </span>
+                      <span className="text-right font-semibold">
+                        ${((asset.price || 0) * asset.amount).toFixed(2)}
                       </span>
                     </div>
                   ))
