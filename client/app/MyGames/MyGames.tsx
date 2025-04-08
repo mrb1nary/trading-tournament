@@ -89,6 +89,7 @@ const fetchTokenPrices = async (mints: string[]) => {
     }
 
     return response.data.result.reduce(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (acc: { [key: string]: number }, token: any) => {
         // Check for price in token_info.price_info.price_per_token
         if (token?.id && token?.token_info?.price_info?.price_per_token) {
@@ -100,8 +101,8 @@ const fetchTokenPrices = async (mints: string[]) => {
     );
   } catch (error) {
     console.error("Error fetching prices:", error);
-    if (error.response) {
-      console.error("Response status:", error.response.status);
+    if (error) {
+      console.error("Response status:", error);
     }
     return {};
   }
