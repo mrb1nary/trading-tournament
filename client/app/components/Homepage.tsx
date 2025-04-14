@@ -208,7 +208,7 @@ export default function HomePage() {
         {/* Main Content */}
         <div className="container mx-auto px-6 py-8 relative z-10 flex flex-col items-center">
           {/* Wallet Connect Section */}
-          <div className="flex justify-between w-full mb-12 space-x-4">
+          {/* <div className="flex justify-between w-full mb-12 space-x-4">
             {[
               { step: "1", text: "Join a game" },
               { step: "2", text: "Trade during the contest" },
@@ -230,7 +230,7 @@ export default function HomePage() {
                 </p>
               </div>
             ))}
-          </div>
+          </div> */}
 
           {/* Main Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8 w-full">
