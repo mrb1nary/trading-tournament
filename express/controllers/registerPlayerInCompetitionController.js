@@ -13,49 +13,81 @@ export const registerPlayerInCompetitionController = async (req, res) => {
     // Fetch Competition by custom 'id' field
     const competition = await Competition.findOne({
       id: Number(competition_id),
-    }); // Explicitly query by 'id'
+    });
+
     if (!competition) {
       return res.status(404).json({ error: "Competition not found" });
     }
 
-    // Check if the competition has space for more players
+    // Check competition capacity
     if (competition.current_players >= competition.max_players) {
       return res.status(400).json({ error: "Competition is already full" });
     }
 
-    // Fetch Player by wallet address
+    // Find player by wallet address
     const player = await Player.findOne({ player_wallet_address });
     if (!player) {
       return res.status(404).json({ error: "Player not found" });
     }
 
-    // Check if Player is already registered
-    const isAlreadyRegistered = competition.participants.some(
-      (participantId) => participantId.toString() === player._id.toString()
+    // Check existing registration
+    const isAlreadyRegistered = competition.participants.some((participantId) =>
+      participantId.equals(player._id)
     );
+
     if (isAlreadyRegistered) {
-      return res
-        .status(400)
-        .json({ error: "Player is already registered in this competition" });
+      return res.status(400).json({ error: "Player already registered" });
     }
 
-    // Register Player
-    competition.participants.push(player._id);
-    competition.current_players += 1;
-    await competition.save();
+    // Transaction-like operations (would be better with actual MongoDB transactions)
+    try {
+      // Add player to competition
+      competition.participants.push(player._id);
+      competition.current_players += 1;
+      await competition.save();
+
+      // Add competition to player's history
+      await Player.findByIdAndUpdate(
+        player._id,
+        {
+          $push: {
+            competitions_played: {
+              competition: competition._id,
+              entry_fee: competition.entry_fee,
+              profit: 0,
+              points_earned: 0,
+            },
+          },
+        },
+        { new: true }
+      );
+    } catch (updateError) {
+      // Rollback competition registration if player update fails
+      competition.participants.pull(player._id);
+      competition.current_players -= 1;
+      await competition.save();
+      throw updateError;
+    }
 
     res.status(200).json({
-      message: "Player successfully registered in the competition",
-      player,
-      competition,
+      message: "Player registered successfully",
+      player: {
+        _id: player._id,
+        wallet: player.player_wallet_address,
+        username: player.player_username,
+      },
+      competition: {
+        id: competition.id,
+        title: competition.title,
+        current_players: competition.current_players,
+      },
     });
   } catch (error) {
-    console.error("Error registering player in competition:", error);
-    res
-      .status(500)
-      .json({
-        error: "Failed to register player in competition",
-        details: error.message,
-      });
+    console.error("Registration error:", error);
+    res.status(500).json({
+      error: "Registration failed",
+      details: error.message,
+      code: error.code || "INTERNAL_ERROR",
+    });
   }
 };

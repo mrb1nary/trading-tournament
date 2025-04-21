@@ -12,7 +12,6 @@ const CompetitionSchema = new mongoose.Schema({
     default: true,
     validate: {
       validator: function (v) {
-        // Active can only be false if competition has ended
         return v === true || this.end_time < new Date();
       },
       message: "Competition can only be deactivated after end time",
@@ -26,7 +25,7 @@ const CompetitionSchema = new mongoose.Schema({
   max_players: {
     type: Number,
     required: true,
-    min: 2, // Minimum 2 players for any competition
+    min: 2,
   },
   current_players: {
     type: Number,
@@ -73,7 +72,7 @@ const CompetitionSchema = new mongoose.Schema({
     required: true,
   },
   winner: {
-    type: mongoose.Schema.Types.ObjectId, // Changed to reference Player
+    type: mongoose.Schema.Types.ObjectId,
     ref: "Player",
     default: null,
   },
@@ -83,29 +82,16 @@ const CompetitionSchema = new mongoose.Schema({
   },
   participants: [
     {
-      player: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Player",
-      },
-      profit: {
-        type: Number,
-        default: 0,
-      },
-      points_earned: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
-      position: {
-        type: Number,
-        min: 1,
-      },
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Player",
     },
   ],
 });
 
-// Indexes for frequent query operations
+// Indexes
 CompetitionSchema.index({ start_time: 1, end_time: 1 });
 CompetitionSchema.index({ category: 1, winning_amount: 1 });
+CompetitionSchema.index({ participants: 1 }); // New index for player lookups
 
 export const Competition = mongoose.model("Competition", CompetitionSchema);
+

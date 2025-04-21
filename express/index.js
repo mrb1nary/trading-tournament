@@ -8,10 +8,13 @@ import closeCompetitionRouter from "./routes/closeCompetition.js";
 import signupPlayerRoute from "./routes/signupPlayer.js";
 import registerPlayerRoute from "./routes/registerPlayerInCompetitionRoute.js";
 import snapshotRoute from "./routes/snapshot.js";
+import endSnapshotRoute from "./routes/endSnapshot.js";
 import updatePlayerInfo from "./routes/updatePlayerInfo.js";
 import fetchPlayer from "./routes/fetchPlayer.js";
 import fetchCompetition from "./routes/fetchCompetition.js";
+import createVersusParty from "./routes/createVersusPartyRoute.js";
 import { dbConnect } from "./config/dbConfig.js";
+
 
 const app = express();
 const PORT = 3001;
@@ -28,8 +31,10 @@ app.use("/api", createCompetitionRouter);
 app.use("/api", joinCompetitionRouter);
 app.use("/api", closeCompetitionRouter);
 app.use("/api", signupPlayerRoute);
+app.use("/api", createVersusParty)
 app.use("/api", registerPlayerRoute);
 app.use("/api", snapshotRoute);
+app.use("/api", endSnapshotRoute);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

@@ -5,96 +5,112 @@ dotenv.config();
 
 export const joinCompetitionController = async (req, res) => {
   try {
-    // Extract competition ID and player wallet address from request body
     const { competition_id, wallet_address } = req.body;
 
-    // Validate required fields
+    // Validate input
     if (!competition_id || !wallet_address) {
       return res.status(400).json({
-        error:
-          "Missing required fields. Both competition_id and wallet_address are required.",
+        error: "Missing required fields: competition_id and wallet_address",
+        code: "MISSING_FIELDS",
       });
     }
 
-    // Find the competition by ID
-    const competition = await Competition.findOne({ id: competition_id });
+    // Find competition with populated participants
+    const competition = await Competition.findOne({
+      id: competition_id,
+    }).populate({
+      path: "participants.player",
+      select: "player_wallet_address",
+    });
 
-    // Check if competition exists
     if (!competition) {
-      return res.status(404).json({ error: "Competition not found" });
+      return res.status(404).json({
+        error: "Competition not found",
+        code: "COMPETITION_NOT_FOUND",
+      });
     }
 
-    // Check if competition has already started
-    const currentTime = new Date();
-    if (currentTime >= competition.start_time) {
-      return res
-        .status(400)
-        .json({ error: "Cannot join. Competition has already started." });
+    // Competition status checks
+    const now = new Date();
+    if (now >= competition.start_time) {
+      return res.status(400).json({
+        error: "Competition has already started",
+        code: "COMPETITION_STARTED",
+      });
     }
 
-    // Check if competition is full
     if (competition.current_players >= competition.max_players) {
-      return res.status(400).json({ error: "Competition is already full" });
+      return res.status(400).json({
+        error: "Competition is full",
+        code: "COMPETITION_FULL",
+      });
     }
 
-    // Check if player exists in the database - using the correct field name
-    let player = await Player.findOne({
+    // Player verification
+    const player = await Player.findOne({
       player_wallet_address: wallet_address,
     });
-
-    // If player doesn't exist, return a message to sign up first
     if (!player) {
       return res.status(404).json({
-        error: "Player not found",
-        message:
-          "You need to sign up on the platform before joining competitions",
+        error: "Player not registered",
+        code: "PLAYER_NOT_FOUND",
+        message: "Complete registration before joining competitions",
       });
     }
 
-    // Check if player is already in this competition
-    const isAlreadyParticipant = competition.participants.some(
-      (participant) => participant.toString() === player._id.toString()
+    // Check existing participation using wallet address
+    const hasJoined = competition.participants.some(
+      (p) => p.player?.player_wallet_address === wallet_address
     );
 
-    if (isAlreadyParticipant) {
-      return res
-        .status(400)
-        .json({ error: "Player is already registered in this competition" });
+    if (hasJoined) {
+      return res.status(409).json({
+        error: "Already joined competition",
+        code: "ALREADY_JOINED",
+        message: "You have already joined this competition.",
+      });
     }
 
-    // For TwoPlayers category (versus mode), check for special conditions
-    if (competition.category === "TwoPlayers") {
-      // Check if the player is trying to compete against themselves
-      // Note: We should compare with competition.authority (the creator's wallet address)
-      if (competition.authority === wallet_address) {
-        return res.status(400).json({
-          error: "In versus mode, you cannot join your own competition",
-        });
-      }
+    // Versus mode validation
+    if (
+      competition.category === "TwoPlayers" &&
+      competition.authority === wallet_address
+    ) {
+      return res.status(400).json({
+        error: "Cannot compete against yourself",
+        code: "SELF_COMPETITION",
+      });
     }
 
-    // Add player to the competition
-    competition.participants.push(player._id);
+    // Add participant with full structure
+    competition.participants.push({
+      player: player._id,
+      profit: 0,
+      points_earned: 0,
+      position: null,
+    });
+
     competition.current_players += 1;
+
     await competition.save();
 
-    // Check if competition is now full after adding this player
-    const competitionFull =
-      competition.current_players >= competition.max_players;
-
-    // Return success response
-    res.status(200).json({
-      message: "Successfully joined the competition",
-      competition_id: competition.id,
-      current_players: competition.current_players,
-      max_players: competition.max_players,
-      competition_full: competitionFull,
-      category: competition.category,
-      start_time: competition.start_time,
-      end_time: competition.end_time,
+    return res.status(200).json({
+      success: true,
+      data: {
+        competition_id: competition.id,
+        current_players: competition.current_players,
+        max_players: competition.max_players,
+        is_full: competition.current_players >= competition.max_players,
+        start_time: competition.start_time,
+      },
     });
   } catch (error) {
-    console.error("Error joining competition:", error);
-    res.status(500).json({ error: "Failed to join competition" });
+    console.error("Join competition error:", error);
+    return res.status(500).json({
+      error: "Internal server error",
+      code: "SERVER_ERROR",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 };

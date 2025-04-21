@@ -15,7 +15,7 @@ export const createCompetitionController = async (req, res) => {
       category,
     } = req.body;
 
-    // Validation middleware-style checks
+    // Validation checks (unchanged)
     const missingFields = [];
     if (!authority) missingFields.push("authority");
     if (!entry_fee) missingFields.push("entry_fee");
@@ -32,7 +32,7 @@ export const createCompetitionController = async (req, res) => {
       });
     }
 
-    // Numeric validation with explicit checks
+    // Numeric validation (unchanged)
     const numericFields = {
       entry_fee: Number(entry_fee),
       base_amount: Number(base_amount),
@@ -50,7 +50,7 @@ export const createCompetitionController = async (req, res) => {
       }
     }
 
-    // Category validation
+    // Category validation (unchanged)
     const categoryMap = {
       TwoPlayers: 2,
       SixPlayers: 6,
@@ -66,11 +66,11 @@ export const createCompetitionController = async (req, res) => {
       });
     }
 
-    // Generate unique competition ID
+    // Generate competition ID (unchanged)
     const competitionId =
       (Date.now() % 1000000) + Math.floor(Math.random() * 1000);
 
-    // Base competition object
+    // Base competition object (updated for new schema)
     const competitionData = {
       authority,
       id: competitionId,
@@ -81,12 +81,13 @@ export const createCompetitionController = async (req, res) => {
       end_time: new Date(numericFields.end_time * 1000),
       winning_amount: numericFields.winning_amount,
       category,
-      active: true, // New active field
+      active: true,
       payout_claimed: false,
-      participants: [],
+      participants: [], // Now simple array of ObjectIds
+      current_players: 0, // Initialize properly
     };
 
-    // Handle TwoPlayers special case
+    // Handle TwoPlayers special case (updated)
     if (category === "TwoPlayers") {
       const player = await Player.findOne({
         player_wallet_address: authority,
@@ -102,14 +103,15 @@ export const createCompetitionController = async (req, res) => {
         });
       }
 
-      competitionData.participants.push({ player: player._id });
+      // Add player reference directly to participants array
+      competitionData.participants.push(player._id);
       competitionData.current_players = 1;
     }
 
-    // Create competition
+    // Create competition (unchanged)
     const newCompetition = await Competition.create(competitionData);
 
-    // Response structure
+    // Response structure (unchanged)
     const response = {
       success: true,
       competition_id: newCompetition.id,
@@ -142,4 +144,3 @@ export const createCompetitionController = async (req, res) => {
     });
   }
 };
-

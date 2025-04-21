@@ -5,7 +5,6 @@ dotenv.config();
 
 export const signupPlayerController = async (req, res) => {
   try {
-    // Extract player details from the request body
     const {
       player_wallet_address,
       twitter_handle,
@@ -18,41 +17,48 @@ export const signupPlayerController = async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Check if wallet address already exists
-    const existingPlayer = await Player.findOne({ player_wallet_address });
-    if (existingPlayer) {
-      return res
-        .status(400)
-        .json({ error: "Wallet address already registered" });
-    }
-
-    // Create a new Player document
+    // Create new player with proper handling
     const newPlayer = new Player({
       player_wallet_address,
-      twitter_handle: twitter_handle || null, // Optional field
+      twitter_handle: twitter_handle?.trim() || undefined,
       player_email,
       player_username,
-      current_balance: 0, // Default balance for a new player
+      // current_balance: 0,
     });
 
-    // Save the new player to the database and handle unique validation errors
-    await newPlayer
-      .save()
-      .then(() => {
-        res.status(201).json({
-          message: "Player signed up successfully",
-          player: newPlayer,
-        });
-      })
-      .catch((error) => {
-        if (error.name === "ValidationError") {
-          return res.status(400).json({ error: error.message });
-        }
-        console.error("Error signing up player:", error);
-        return res.status(500).json({ error: "Failed to sign up player" });
-      });
+    await newPlayer.save();
+    res.status(201).json({
+      message: "Player signed up successfully",
+      player: newPlayer,
+    });
   } catch (error) {
+    // Handle duplicate key errors specifically
+    if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyPattern)[0];
+      const fieldMapping = {
+        player_wallet_address: "wallet address",
+        player_email: "email",
+        player_username: "username",
+        twitter_handle: "Twitter handle",
+      };
+
+      return res.status(400).json({
+        error: `This ${
+          fieldMapping[duplicateField] || duplicateField
+        } is already registered`,
+        field: duplicateField,
+        value: error.keyValue[duplicateField],
+      });
+    }
+
+    // Handle other errors
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ error: error.message });
+    }
+
     console.error("Error signing up player:", error);
     res.status(500).json({ error: "Failed to sign up player" });
   }
 };
+
+
