@@ -12,6 +12,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@headlessui/react": "^2.2.1",
     "@heroicons/react": "^2.2.0",
     "@mui/material": "^7.0.1",
     "@mui/x-date-pickers": "^7.28.3",
@@ -30,6 +31,7 @@
     "dayjs": "^1.11.13",
     "flowbite-react": "^0.11.7",
     "framer-motion": "^12.6.3",
+    "headlessui": "^0.0.0",
     "heroicons": "^2.2.0",
     "luxon": "^3.6.0",
     "next": "^15.2.2",

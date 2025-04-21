@@ -38,6 +38,7 @@ export default function HomePage() {
       _id: string;
     }[];
   }
+  
 
   const [modalIsOpen, setModalIsOpen] = useState(false);
 
@@ -400,10 +401,10 @@ export default function HomePage() {
               </h3>
               <ul className="space-y-6">
                 {[
-                  { name: "Join Telegram", points: "+1200 pts" },
-                  { name: "Win a game", points: "+1300 pts" },
-                  { name: "Start a mode", points: "+1250 pts" },
-                  { name: "Challenge a player", points: "+1000 pts" },
+                  { name: "Join us on TG", points: "+1200 pts" },
+                  { name: "Join us on X", points: "+1300 pts" },
+                  { name: "Read Documentation", points: "+1250 pts" },
+                  { name: "Coming Soon!", points: "+1000 pts" },
                 ].map((mission, index) => (
                   <li
                     key={index}
@@ -420,6 +421,7 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
+              
 
               {/* Show More Button */}
               <button
@@ -487,6 +489,7 @@ export default function HomePage() {
                     </span>
                   </div>
                 </div>
+                <div> Hey</div>
 
                 <div className="space-y-3 animate-slideUp">
                   <div className="transform transition-all duration-300 hover:scale-102">
