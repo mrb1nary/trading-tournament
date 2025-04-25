@@ -241,7 +241,29 @@ export default function HomePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-grow">
                 {/* Versus Mode */}
                 <Link href="/versus" className="block h-full">
-                  <div className="mode-card flex flex-col items-center justify-between card-bg rounded-xl p-10 transition-all duration-300 h-full">
+                  <div className="mode-card flex flex-col items-center justify-between card-bg rounded-xl p-10 transition-all duration-300 h-full relative">
+                    <div className="absolute top-4 right-4 group">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6 text-gray-400 hover:text-green-500 transition-colors"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <div className="absolute hidden group-hover:block right-0 bg-gray-800 text-white p-2 rounded shadow-lg z-10 w-96 text-center">
+                        Versus is a 1vs1 mode Where you can challenge your
+                        friend or traders from around. You can join a match or
+                        create your own by setting your own rules, cashprize,
+                        total Time, fees and base amount.
+                      </div>
+                    </div>
                     <div className="mb-6 transition-transform duration-300">
                       <Image
                         src="/assets/versusIcon.png"
@@ -255,14 +277,37 @@ export default function HomePage() {
                       Mode Versus
                     </h3>
                     <p className="text-green-500 text-lg transition-all duration-300">
-                      One versus One contest
+                      2 Players. 1 Winner!
                     </p>
                   </div>
                 </Link>
 
                 {/* Twister Mode */}
                 <Link href="/twister" className="block h-full">
-                  <div className="mode-card flex flex-col items-center justify-between card-bg rounded-xl p-10 transition-all duration-300 h-full">
+                  <div className="mode-card flex flex-col items-center justify-between card-bg rounded-xl p-10 transition-all duration-300 h-full relative">
+                    <div className="absolute top-4 right-4 group">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6 text-gray-400 hover:text-green-500 transition-colors"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <div className="absolute hidden group-hover:block right-0 bg-gray-800 text-white p-2 rounded shadow-lg z-10 w-96 text-center">
+                        Twister is 1vs1vs1 mode Where you fan challenge two
+                        others traders in a hight stake battle. You can join an
+                        existing match or create your own bybsetting the rules,
+                        including the cashprize, total Time, start, end and
+                        entry fees.
+                      </div>
+                    </div>
                     <div className="mb-6 transition-transform duration-300">
                       <Image
                         src="/assets/twisterIcon.png"
@@ -276,37 +321,57 @@ export default function HomePage() {
                       Mode Twister
                     </h3>
                     <p className="text-green-500 text-lg transition-all duration-300">
-                      Three and more contest
+                      1v1v1. Triple the fun
+                    </p>
+                  </div>
+                </Link>
+
+                {/* Competition Mode */}
+                <Link
+                  href="/competition"
+                  className="block h-full md:col-span-2"
+                >
+                  <div className="mode-card flex flex-col items-center justify-between card-bg rounded-xl p-10 transition-all duration-300 h-full relative">
+                    <div className="absolute top-4 right-4 group">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6 text-gray-400 hover:text-green-500 transition-colors"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <div className="absolute hidden group-hover:block right-0 bg-gray-800 text-white p-2 rounded shadow-lg z-10 w-96 text-center">
+                        Competition mode lets you face off 6 to +100 traders
+                        worldwide in intense PvP compétition trading.
+                      </div>
+                    </div>
+                    <div className="mb-6 transition-transform duration-300">
+                      <Image
+                        src="/assets/competitionIcon.png"
+                        alt="Competition"
+                        width={240}
+                        height={240}
+                        className="mx-auto transition-all duration-300"
+                      />
+                    </div>
+                    <h3 className="text-2xl font-semibold mt-4 transition-all duration-300">
+                      Mode Competition
+                    </h3>
+                    <p className="text-green-500 text-lg transition-all duration-300">
+                      From 6 to 100+ players worldwide. Claim the throne!
                     </p>
                   </div>
                 </Link>
               </div>
 
-              {/* Competition Mode */}
-              <Link href="/competition" className="block">
-                <div className="competition-card mode-card relative card-bg rounded-xl p-12 flex items-center transition-all duration-300 h-[380px]">
-                  <div className="mr-10 transition-transform duration-300">
-                    <Image
-                      src="/assets/competitionIcon.png"
-                      alt="Competition"
-                      width={280}
-                      height={280}
-                      className="mx-auto transition-all duration-300"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-3xl font-semibold mb-4 transition-all duration-300">
-                      Mode Competition
-                    </h3>
-                    <p className="text-green-500 text-xl max-w-md transition-all duration-300">
-                      Five to one hundred contest. Challenge traders worldwide.
-                    </p>
-                  </div>
-                  <span className="absolute top-4 right-4 bg-green-600 text-white px-4 py-1 rounded-full text-lg transition-all duration-300">
-                    Popular #1
-                  </span>
-                </div>
-              </Link>
+              
             </div>
 
             {/* Sidebar */}
@@ -377,7 +442,7 @@ export default function HomePage() {
 
                 {/* Second Row */}
                 <div className="flex justify-between w-full">
-                  <div className="flex items-center text-red-500 text-sm font-semibold">
+                  <div className="flex items-center text-gray-400 text-sm font-semibold">
                     <MdOutlineTimer className="mr-2" size={20} />
                     League: incoming
                   </div>
@@ -421,7 +486,6 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
-              
 
               {/* Show More Button */}
               <button

@@ -27,6 +27,7 @@ export const Footer: React.FC = () => {
         <div className="flex-1 min-w-[300px] mb-5">
           <h4 className="text-lg font-bold mb-3">Resource</h4>
           <ul className="list-none space-y-2 text-sm font-normal">
+            <li>Documentation</li>
             <li>Contact</li>
             <li>Documentation</li>
             <li>Press</li>
