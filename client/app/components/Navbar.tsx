@@ -239,6 +239,7 @@ const Navbar: React.FC = () => {
 
             <div className="text-text-primary">
               {/* Content will go here */}
+              The Rule Book shall be displayed here
             </div>
 
             <div className="mt-6 flex justify-end">

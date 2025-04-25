@@ -122,12 +122,33 @@ export default function VersusPage() {
           {/* Create a Party */}
           <div
             onClick={() => setShowCreateModal(true)}
-            className="rounded-2xl p-10 text-center flex flex-col items-center justify-center hover:opacity-80 transition cursor-pointer aspect-square w-full max-w-sm mx-auto opacity-90"
+            className="rounded-2xl p-10 text-center flex flex-col items-center justify-center hover:opacity-80 transition cursor-pointer aspect-square w-full max-w-sm mx-auto opacity-90 relative"
             style={{
               background: "linear-gradient(145deg, #1E2427 0%, #121518 100%)",
               boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
             }}
           >
+            {/* Help icon with tooltip */}
+            <div className="absolute top-4 right-4 group">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-gray-400 hover:text-green-500 transition-colors"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <div className="absolute hidden group-hover:block right-0 bg-gray-800 text-white p-2 rounded shadow-lg z-10 w-64 text-center">
+                Enter details to create a party
+              </div>
+            </div>
+
             <div className="flex items-center justify-center h-full">
               <div className="flex flex-col items-center">
                 <div className="mb-6">
@@ -148,12 +169,33 @@ export default function VersusPage() {
 
           {/* Join a Game */}
           <div
-            className="rounded-2xl p-10 text-center flex flex-col items-center justify-center hover:opacity-80 transition cursor-pointer aspect-square w-full max-w-sm mx-auto opacity-90"
+            className="rounded-2xl p-10 text-center flex flex-col items-center justify-center hover:opacity-80 transition cursor-pointer aspect-square w-full max-w-sm mx-auto opacity-90 relative"
             style={{
               background: "linear-gradient(145deg, #1E2427 0%, #121518 100%)",
               boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
             }}
           >
+            {/* Help icon with tooltip */}
+            <div className="absolute top-4 right-4 group">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-gray-400 hover:text-green-500 transition-colors"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <div className="absolute hidden group-hover:block right-0 bg-gray-800 text-white p-2 rounded shadow-lg z-10 w-64 text-center">
+                Someone shared a invite code with you? Enter it here!
+              </div>
+            </div>
+
             <div className="flex items-center justify-center h-full">
               <div className="flex flex-col items-center">
                 <div className="mb-6">
@@ -172,12 +214,33 @@ export default function VersusPage() {
 
           {/* My Parties */}
           <div
-            className="rounded-2xl p-10 text-center flex flex-col items-center justify-center hover:opacity-80 transition cursor-pointer aspect-square w-full max-w-sm mx-auto opacity-90"
+            className="rounded-2xl p-10 text-center flex flex-col items-center justify-center hover:opacity-80 transition cursor-pointer aspect-square w-full max-w-sm mx-auto opacity-90 relative"
             style={{
               background: "linear-gradient(145deg, #1E2427 0%, #121518 100%)",
               boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
             }}
           >
+            {/* Help icon with tooltip */}
+            <div className="absolute top-4 right-4 group">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-gray-400 hover:text-green-500 transition-colors"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <div className="absolute hidden group-hover:block right-0 bg-gray-800 text-white p-2 rounded shadow-lg z-10 w-64 text-center">
+                A list of all the parties you have joined
+              </div>
+            </div>
+
             <div className="flex items-center justify-center h-full">
               <div className="flex flex-col items-center">
                 <div className="mb-6">
