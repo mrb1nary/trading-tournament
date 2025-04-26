@@ -84,7 +84,7 @@ export const endSnapshotController = async (req, res) => {
           mint_address: asset.id,
           symbol: symbol,
           balance: balance,
-          usd_value: null, // Placeholder, you can add price logic if you want
+          usd_value: null, // We will add price logic later
         });
       });
     }

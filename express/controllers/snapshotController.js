@@ -124,47 +124,58 @@ export const snapshotController = async (req, res) => {
       0
     );
 
+    // Create snapshot object
+    const currentSnapshot = {
+      snapshot_timestamp: new Date(),
+      assets: assets,
+      total_portfolio_value: totalValue,
+    };
+
     // Check if a snapshot already exists for this wallet and competition
     const existingSnapshot = await UserAssetSnapshot.findOne({
       competition: competition._id,
+      player: user._id,
       wallet_address: wallet_address,
     });
 
     let savedSnapshot;
 
     if (existingSnapshot) {
-      // Update existing snapshot
-      existingSnapshot.snapshot_timestamp = new Date();
-      existingSnapshot.assets = assets;
-      existingSnapshot.total_portfolio_value = totalValue;
+      // Update existing snapshot with startSnapshot only
+      existingSnapshot.startSnapshot = currentSnapshot;
 
       savedSnapshot = await existingSnapshot.save();
-      console.log(`Updated existing snapshot with ID: ${savedSnapshot._id}`);
+      console.log(`Updated start snapshot with ID: ${savedSnapshot._id}`);
     } else {
-      // Create new snapshot
-      const snapshot = new UserAssetSnapshot({
+      // Create new snapshot document with startSnapshot only
+      const snapshotData = {
         competition: competition._id,
         player: user._id,
         wallet_address: wallet_address,
-        snapshot_timestamp: new Date(),
-        assets: assets,
-        total_portfolio_value: totalValue,
-      });
+        startSnapshot: currentSnapshot,
+        endSnapshot: {
+          snapshot_timestamp: new Date(),
+          assets: [],
+          total_portfolio_value: 0,
+        },
+      };
 
+      const snapshot = new UserAssetSnapshot(snapshotData);
       savedSnapshot = await snapshot.save();
-      console.log(`Created new snapshot with ID: ${savedSnapshot._id}`);
+      console.log(`Created new start snapshot with ID: ${savedSnapshot._id}`);
     }
 
     return res.status(200).json({
       success: true,
       message: existingSnapshot
-        ? "Snapshot updated successfully"
-        : "Snapshot created successfully",
+        ? "Start snapshot updated successfully"
+        : "Start snapshot created successfully",
       data: {
         snapshot_id: savedSnapshot._id,
-        timestamp: savedSnapshot.snapshot_timestamp,
-        asset_count: savedSnapshot.assets.length,
-        total_value: savedSnapshot.total_portfolio_value,
+        snapshot_type: "start",
+        timestamp: savedSnapshot.startSnapshot.snapshot_timestamp,
+        asset_count: savedSnapshot.startSnapshot.assets.length,
+        total_value: savedSnapshot.startSnapshot.total_portfolio_value,
       },
     });
   } catch (error) {
