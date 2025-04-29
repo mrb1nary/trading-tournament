@@ -48,6 +48,7 @@ app.use("/api", fetchSnapshotRouter);
 app.use("/api", snapshotRoute);
 app.use("/api", endSnapshotRoute);
 
-app.listen(PORT, () => {
-  console.log(`Server is running on ${process.env.SERVER_URL}:${PORT}`);
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
