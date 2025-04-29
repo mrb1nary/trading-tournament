@@ -16,6 +16,17 @@ import createVersusParty from "./routes/createVersusPartyRoute.js";
 import fetchSnapshotRouter from "./routes/fetchSnapshot.js";
 import { dbConnect } from "./config/dbConfig.js";
 
+import dotenv from "dotenv";
+dotenv.config();
+
+
+console.log(
+  "MongoDB URI:",
+  process.env.MONGODB_CONNECTION_STRING ? "Loaded" : "Not set"
+);
+
+
+
 const app = express();
 const PORT = 3001;
 
@@ -38,5 +49,5 @@ app.use("/api", snapshotRoute);
 app.use("/api", endSnapshotRoute);
 
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on ${process.env.SERVER_URL} ${PORT}`);
 });

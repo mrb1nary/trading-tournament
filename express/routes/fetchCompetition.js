@@ -3,6 +3,6 @@ import { fetchCompetitionController } from "../controllers/fetchCompetitionsCont
 
 const router = express.Router();
 
-router.route("/fetchCompetition").get(fetchCompetitionController);
+router.route("/fetchCompetition").post(fetchCompetitionController);
 
 export default router;

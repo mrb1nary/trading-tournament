@@ -1,4 +1,5 @@
 import { Competition } from "../models/competitionModel.js";
+import { Player } from "../models/playerModel.js";
 
 export const fetchCompetitionController = async (req, res) => {
   try {
@@ -6,19 +7,22 @@ export const fetchCompetitionController = async (req, res) => {
 
     // Handle single competition lookup
     if (competition_id) {
-      // Validate competition ID format
-      if (!/^\d{6,7}$/.test(competition_id.toString())) {
-        return res.status(400).json({
-          error: "Invalid competition ID format - must be 6-7 numerical digits",
-          code: "INVALID_ID_FORMAT",
-        });
-      }
-
       const numericId = parseInt(competition_id, 10);
       const competition = await Competition.findOne({
         id: numericId,
         active: true,
-      });
+      })
+        .populate({
+          path: "participants",
+          select: "player_wallet_address -_id", // Only return wallet address
+          model: Player,
+        })
+        .populate({
+          path: "winner",
+          select: "player_wallet_address -_id",
+          model: Player,
+        })
+        .lean();
 
       if (!competition) {
         return res.status(404).json({
@@ -27,22 +31,45 @@ export const fetchCompetitionController = async (req, res) => {
         });
       }
 
+      // Transform participants to array of wallet addresses
+      const participants =
+        competition.participants?.map((p) => p.player_wallet_address) || [];
+      const winner = competition.winner?.player_wallet_address || null;
+
       return res.status(200).json({
         message: "Competition details retrieved successfully",
         count: 1,
-        competitions: [competition],
+        competitions: [
+          {
+            ...competition,
+            participants,
+            winner,
+          },
+        ],
       });
     }
 
     // Handle all active competitions case
-    const activeCompetitions = await Competition.find({ active: true }).sort({
-      start_time: 1,
-    });
+    const activeCompetitions = await Competition.find({ active: true })
+      .populate({
+        path: "participants",
+        select: "player_wallet_address -_id",
+        model: Player,
+      })
+      .sort({ start_time: 1 })
+      .lean();
+
+    // Transform participants in all competitions
+    const transformedCompetitions = activeCompetitions.map((c) => ({
+      ...c,
+      participants: c.participants?.map((p) => p.player_wallet_address) || [],
+      winner: c.winner?.player_wallet_address || null,
+    }));
 
     res.status(200).json({
       message: "Active competitions retrieved successfully",
-      count: activeCompetitions.length,
-      competitions: activeCompetitions,
+      count: transformedCompetitions.length,
+      competitions: transformedCompetitions,
     });
   } catch (error) {
     console.error("Error fetching competitions:", error);
