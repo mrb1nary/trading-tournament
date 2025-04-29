@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import React, { useEffect, useState } from "react";
@@ -6,8 +8,6 @@ import { FiExternalLink } from "react-icons/fi";
 import { HiCheck } from "react-icons/hi";
 import { format, parse } from "date-fns";
 import axios from "axios";
-
-
 
 interface Transaction {
   signature: string;
@@ -23,57 +23,48 @@ interface Asset {
   name?: string;
 }
 
-function MyGames() {
-  const [activeTab, setActiveTab] = useState<"wallet" | "activity">("wallet");
-  const [assets, setAssets] = useState<Asset[]>([]); // State to store wallet assets
-  const { publicKey } = useWallet();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const connection = new Connection("https://api.devnet.solana.com");
-  const HELIUS_API_KEY = process.env.NEXT_PUBLIC_HELIUS_API_KEY;
-  const HELIUS_RPC_URL = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
+const SOL_MINT = "So11111111111111111111111111111111111111112";
+const connection = new Connection("https://api.devnet.solana.com");
 
-  function formatDate(dateString: string): string {
-    console.log("Input to formatDate:", dateString); // Log input
+const HELIUS_API_KEY = process.env.NEXT_PUBLIC_HELIUS_API_KEY;
+const HELIUS_RPC_URL = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
 
-    try {
-      // Parse the input date string
-      const date = parse(dateString, "M/d/yyyy, h:mm:ss a", new Date());
-
-      if (isNaN(date.getTime())) {
-        console.error("Invalid date passed to formatDate:", dateString);
-        return "Invalid Date";
-      }
-
-      const day = date.getDate();
-      let suffix = "th";
-      if (day % 10 === 1 && day !== 11) suffix = "st";
-      else if (day % 10 === 2 && day !== 12) suffix = "nd";
-      else if (day % 10 === 3 && day !== 13) suffix = "rd";
-
-      const formattedDate = `${day}${suffix} ${format(date, "MMM yyyy")}`;
-      console.log("Formatted Date:", formattedDate); // Log output
-      return formattedDate;
-    } catch (error) {
-      console.error("Error in formatDate:", error);
-      return "Invalid Date";
-    }
-  }
-
-const fetchTokenPrices = async (mints: string[]) => {
+// Helper Functions
+function formatDate(dateString: string): string {
   try {
-    const validMints = mints.filter((mint) => mint.length > 0);
+    const date = parse(dateString, "M/d/yyyy, h:mm:ss a", new Date());
+    if (isNaN(date.getTime())) return "Invalid Date";
 
+    const day = date.getDate();
+    const suffix =
+      day % 10 === 1 && day !== 11
+        ? "st"
+        : day % 10 === 2 && day !== 12
+        ? "nd"
+        : day % 10 === 3 && day !== 13
+        ? "rd"
+        : "th";
+
+    return `${day}${suffix} ${format(date, "MMM yyyy")}`;
+  } catch (error) {
+    console.error("Error in formatDate:", error);
+    return "Invalid Date";
+  }
+}
+
+async function fetchTokenPrices(
+  mints: string[]
+): Promise<{ [key: string]: number }> {
+  if (!mints.length) return {};
+
+  try {
     const response = await axios.post(
       HELIUS_RPC_URL,
       {
         jsonrpc: "2.0",
         id: "price-fetch",
         method: "getAssetBatch",
-        params: {
-          ids: validMints,
-        },
+        params: { ids: mints },
       },
       {
         headers: {
@@ -84,14 +75,12 @@ const fetchTokenPrices = async (mints: string[]) => {
     );
 
     if (!response.data?.result) {
-      console.error("Invalid API response format");
+      console.error("Invalid API response format", response.data);
       return {};
     }
 
     return response.data.result.reduce(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (acc: { [key: string]: number }, token: any) => {
-        // Check for price in token_info.price_info.price_per_token
         if (token?.id && token?.token_info?.price_info?.price_per_token) {
           acc[token.id] = token.token_info.price_info.price_per_token;
         }
@@ -101,88 +90,84 @@ const fetchTokenPrices = async (mints: string[]) => {
     );
   } catch (error) {
     console.error("Error fetching prices:", error);
-    if (error) {
-      console.error("Response status:", error);
-    }
     return {};
   }
-};
+}
 
+function MyGames() {
+  const { publicKey } = useWallet();
 
+  const [activeTab, setActiveTab] = useState<"wallet" | "activity">("wallet");
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loadingAssets, setLoadingAssets] = useState<boolean>(true);
+  const [loadingTxns, setLoadingTxns] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const fetchAssets = async () => {
+      if (!publicKey) return;
 
+      try {
+        setLoadingAssets(true);
 
-// Update the assets processing in useEffect
-useEffect(() => {
-  const fetchAssets = async () => {
-    if (!publicKey) return;
+        const solBalanceLamports = await connection.getBalance(publicKey);
+        const solBalance = solBalanceLamports / LAMPORTS_PER_SOL;
 
-    try {
-      setLoading(true);
+        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+          publicKey,
+          {
+            programId: new PublicKey(
+              "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+            ),
+          }
+        );
 
-      // Fetch SOL balance
-      const solBalanceLamports = await connection.getBalance(publicKey);
-      const solBalance = solBalanceLamports / LAMPORTS_PER_SOL;
+        const splTokens = tokenAccounts.value.map((account) => {
+          const info = account.account.data.parsed.info;
+          return {
+            mint: info.mint,
+            amount: info.tokenAmount.uiAmount || 0,
+            decimals: info.tokenAmount.decimals || 0,
+          };
+        });
 
-      // Fetch SPL tokens
-      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-        publicKey,
-        {
-          programId: new PublicKey(
-            "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-          ),
-        }
-      );
+        const combinedAssets = [
+          { mint: SOL_MINT, amount: solBalance, decimals: 9 },
+          ...splTokens,
+        ];
 
-      const splTokens = tokenAccounts.value.map((account) => {
-        const info = account.account.data.parsed.info;
-        return {
-          mint: info.mint,
-          amount: info.tokenAmount.uiAmount || 0,
-          decimals: info.tokenAmount.decimals || 0,
-        };
-      });
+        const prices = await fetchTokenPrices(
+          combinedAssets.map((a) => a.mint)
+        );
 
-      // Combine assets with proper SOL mint address
-      const combinedAssets = [
-        {
-          mint: "So11111111111111111111111111111111111111112",
-          amount: solBalance,
-          decimals: 9,
-        },
-        ...splTokens,
-      ];
+        const assetsWithPrices = combinedAssets.map((asset) => ({
+          ...asset,
+          price: prices[asset.mint] || 0,
+          name:
+            asset.mint === SOL_MINT ? "SOL" : asset.mint.slice(0, 4) + "...",
+        }));
 
-      // Fetch prices
-      const prices = await fetchTokenPrices(combinedAssets.map((a) => a.mint));
+        setAssets(assetsWithPrices);
+        setError(null);
+      } catch (error) {
+        console.error("Failed to fetch assets:", error);
+        setError("Failed to load assets.");
+      } finally {
+        setLoadingAssets(false);
+      }
+    };
 
-      const assetsWithPrices = combinedAssets.map((asset) => ({
-        ...asset,
-        price: prices[asset.mint] || 0,
-        name:
-          asset.mint === "So11111111111111111111111111111111111111112"
-            ? "SOL"
-            : asset.mint.slice(0, 4) + "...",
-      }));
-
-      setAssets(assetsWithPrices);
-    } catch (error) {
-      console.error("Failed to fetch assets:", error);
-      setError("Failed to load assets.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-  fetchAssets();
-}, [publicKey]);
+    fetchAssets();
+  }, [publicKey]);
 
   useEffect(() => {
     const fetchTransactions = async () => {
       if (!publicKey) return;
 
       try {
+        setLoadingTxns(true);
+
         const response = await connection.getSignaturesForAddress(publicKey, {
           limit: 10,
         });
@@ -198,45 +183,65 @@ useEffect(() => {
         setTransactions(txList);
         setError(null);
       } catch (err) {
-        setError("Failed to fetch transactions");
-        console.error(err);
+        console.error("Failed to fetch transactions", err);
+        setError("Failed to load transactions.");
       } finally {
-        setLoading(false);
+        setLoadingTxns(false);
       }
     };
 
     fetchTransactions();
   }, [publicKey]);
-
-  
-
   return (
     <div className="bg-[#0d1117] min-h-screen text-white">
       {/* Main Content */}
       <main className="px-6 py-5 max-w-6xl mx-auto">
         {/* Top Section */}
         <div className="flex justify-between items-start mb-5">
+          {/* Left: Cashprize Info */}
           <div>
             <p className="text-gray-400 text-sm">Cashprize</p>
             <h2 className="text-2xl font-bold">0.00 $US</h2>
-            <div className="inline-block border border-green-500/40 rounded px-2 py-0.5 text-xs text-green-400 mt-1">
-              Classement 3/12
-            </div>
           </div>
-          <div className="bg-[#1c2128] rounded-lg flex p-1">
-            <button className="bg-[#2d333b] text-white rounded-md px-4 py-1 text-sm">
-              Competition
-            </button>
-            <button className="text-gray-400 px-4 py-1 text-sm">Versus</button>
-            <button className="text-gray-400 px-4 py-1 text-sm">Twitter</button>
+
+          {/* Right: Ranking + Button Group */}
+          <div className="flex items-center gap-3">
+            {/* Ranking Badge */}
+            <div className="ranking-badge">
+              <span className="label">Ranking</span>
+              <span className="value">3/12</span>
+            </div>
+            {/* Button Group */}
+            <div className="bg-[#1c2128] rounded-lg flex p-1">
+              <button className="bg-[#2d333b] text-white rounded-md px-4 py-1 text-sm">
+                Competition
+              </button>
+              <button className="text-gray-400 px-4 py-1 text-sm">
+                Versus
+              </button>
+              <button className="text-gray-400 px-4 py-1 text-sm">
+                Twitter
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Timer Section */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
           <div className="border border-[#30363d] rounded-md py-2 px-3 bg-[#0d1117]">
             <p className="text-xs text-gray-400">
               Base amount: <span className="text-white">0.001</span>
+            </p>
+          </div>
+          {/*Wallet Section*/}
+          <div className="border border-[#30363d] rounded-md py-2 px-3 bg-[#0d1117]">
+            <p className="text-xs text-gray-400">
+              Wallet Balance:{" "}
+              <span className="text-white">
+                {assets.find((a) => a.mint === SOL_MINT)?.amount.toFixed(4) ||
+                  "0.0000"}{" "}
+                SOL
+              </span>
             </p>
           </div>
           <div className="border border-[#30363d] rounded-md py-2 px-3 bg-[#0d1117]">
@@ -257,17 +262,6 @@ useEffect(() => {
           </div>
         </div>
 
-        <div className="border border-[#30363d] rounded-md py-2 px-3 bg-[#0d1117] mb-6">
-          <p className="text-xs text-gray-400">
-            Wallet:{" "}
-            <span className="text-white">
-              {assets.find((a) => a.mint === "SOL")?.amount.toFixed(4) ||
-                "0.0000"}{" "}
-              SOL
-            </span>
-          </p>
-        </div>
-
         {/* Tab Navigation */}
         <div className="border-b border-[#30363d] mb-6">
           <div className="flex">
@@ -280,21 +274,28 @@ useEffect(() => {
         </div>
 
         {/* Profile Section */}
-        <div className="flex items-center mb-6">
-          <div className="w-12 h-12 rounded-full bg-green-900/30 overflow-hidden flex items-center justify-center text-green-400 font-bold text-xl">
-            7a
-          </div>
-          <div className="ml-3">
-            <div className="flex items-center">
-              <p className="text-white">7aeo2...yjlk</p>
-              <HiCheck className="ml-2 text-gray-400" />
-              <FiExternalLink className="ml-2 text-gray-400" />
+        <div className="flex items-center justify-between mb-6">
+          {/* Left: Profile Details */}
+          <div className="flex items-center">
+            <div className="w-12 h-12 rounded-full bg-green-900/30 overflow-hidden flex items-center justify-center text-green-400 font-bold text-xl">
+              P
             </div>
-            <div className="flex items-center">
-              <p className="text-gray-400 text-xs">7aeoZL</p>
-              <div className="ml-1 w-2 h-2 rounded-full bg-gray-300"></div>
+            <div className="ml-3">
+              <div className="flex items-center">
+                <p className="text-white">Paul</p>
+                <HiCheck className="ml-2 text-gray-400" />
+                <FiExternalLink className="ml-2 text-gray-400" />
+              </div>
+              <div className="flex items-center">
+                <p className="text-gray-400 text-xs">7aeoZL</p>
+                <div className="ml-1 w-2 h-2 rounded-full bg-gray-300"></div>
+              </div>
             </div>
           </div>
+          {/* Right: Compare Button */}
+          <button className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-semibold transition">
+            Compare
+          </button>
         </div>
 
         {/* Performance and Distribution */}
@@ -303,11 +304,11 @@ useEffect(() => {
           <div className="border border-[#30363d] rounded-lg p-4 bg-[#0d1117]">
             <h3 className="text-lg font-medium mb-2">Performance</h3>
             <p className="text-gray-400 text-sm">
-              7D Realized PnL: <span className="text-white">$US</span>
+              7D Realized PnL: <span className="text-white">$2180</span>
             </p>
             <div className="flex items-baseline mt-1">
-              <h2 className="text-green-400 text-2xl font-bold">+ 610.38 %</h2>
-              <span className="ml-2 text-green-400">+ $16.8 K</span>
+              <h2 className="text-green-400 text-2xl font-bold">500$</h2>
+              <span className="ml-2 text-green-400">+ 67%</span>
             </div>
             <div className="mt-3 space-y-1">
               <p className="text-sm flex justify-between">
@@ -390,7 +391,13 @@ useEffect(() => {
                     <FaWallet className="w-5 h-5 text-green-400" />
                   </div>
                   <h3 className="text-lg font-semibold text-green-400">
-                    Wallet · Connected Assets
+                    {/* <span className="">
+                      {assets
+                        .find((a) => a.mint === SOL_MINT)
+                        ?.amount.toFixed(4) || "0.0000"}{" "}
+                      SOL
+                    </span> */}
+                    $50
                   </h3>
                 </div>
                 <div className="grid grid-cols-4 text-gray-400 text-sm pb-2 px-2">
@@ -451,7 +458,7 @@ useEffect(() => {
 
                 <div className="border-t border-[#30363d] mt-1"></div>
 
-                {loading ? (
+                {loadingTxns ? (
                   <div className="h-24 flex items-center justify-center text-gray-500 animate-pulse">
                     Loading transactions...
                   </div>
