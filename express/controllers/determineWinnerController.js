@@ -1,5 +1,7 @@
 import { Player } from "../models/playerModel.js";
 import { Competition } from "../models/competitionModel.js";
+import { UserAssetSnapshot } from "../models/userSnapshotModel.js";
+import axios from "axios";
 import {
   fetchTransactionsForWallet,
   calculateProfit,
@@ -44,6 +46,101 @@ export const determineWinnerController = async (req, res) => {
     const competitionStart = Math.floor(start_time.getTime() / 1000);
     const competitionEnd = Math.floor(end_time.getTime() / 1000);
 
+    // Function to fetch wallet assets with retry logic
+    const fetchWalletAssets = async (
+      walletAddress,
+      retries = 3,
+      delay = 1000
+    ) => {
+      try {
+        // Get SOL balance
+        const solBalanceData = await axios.post(
+          `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`,
+          {
+            jsonrpc: "2.0",
+            id: "sol-balance",
+            method: "getBalance",
+            params: [walletAddress],
+          },
+          {
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+
+        const solBalance = solBalanceData.data.result.value / 1000000000; // Convert lamports to SOL
+
+        // Get token assets
+        const assetData = await axios.post(
+          `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`,
+          {
+            jsonrpc: "2.0",
+            id: "get-assets",
+            method: "getAssetsByOwner",
+            params: {
+              ownerAddress: walletAddress,
+              page: 1,
+              limit: 1000,
+            },
+          },
+          {
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+
+        // Format assets for our schema
+        const assets = [];
+
+        // Add SOL balance
+        assets.push({
+          mint_address: "So11111111111111111111111111111111111111112",
+          symbol: "SOL",
+          balance: solBalance,
+          usd_value: solBalance * 143.36, // Using a fixed price for simplicity
+        });
+
+        // Add token assets
+        if (assetData.data.result && assetData.data.result.items) {
+          assetData.data.result.items.forEach((asset) => {
+            let usdValue = 0;
+            const symbol =
+              asset.content?.metadata?.symbol || asset.symbol || "UNKNOWN";
+            const balance = asset.tokenAmount || asset.amount || 1;
+
+            if (symbol === "USDC" || symbol === "USDT") {
+              usdValue = parseFloat(balance);
+            } else {
+              usdValue = parseFloat(balance) * 1.0; // Using a placeholder price
+            }
+
+            assets.push({
+              mint_address: asset.id,
+              symbol: symbol,
+              balance: balance,
+              usd_value: usdValue,
+            });
+          });
+        }
+
+        // Calculate total portfolio value
+        const totalValue = assets.reduce(
+          (sum, asset) =>
+            sum + (isNaN(asset.usd_value) ? 0 : Number(asset.usd_value)),
+          0
+        );
+
+        return { assets, totalValue };
+      } catch (error) {
+        if (retries > 0) {
+          console.log(
+            `Request failed, retrying in ${delay}ms... (${retries} retries left)`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          return fetchWalletAssets(walletAddress, retries - 1, delay * 2);
+        }
+        throw error;
+      }
+    };
+
     // Process each participant
     for (const player of participants) {
       try {
@@ -67,7 +164,7 @@ export const determineWinnerController = async (req, res) => {
             profits: {
               USDC: { buys: 0, sells: 0, net: 0 },
               USDT: { buys: 0, sells: 0, net: 0 },
-              SOL: { buys: 0, sells: 0, net: 0 }, // Added SOL tracking
+              SOL: { buys: 0, sells: 0, net: 0 },
               total: 0,
             },
             points_earned: 0,
@@ -97,9 +194,57 @@ export const determineWinnerController = async (req, res) => {
         competitionStats.profits = {
           USDC: profit.USDC,
           USDT: profit.USDT,
-          SOL: profit.SOL, // Added SOL profits
+          SOL: profit.SOL,
           total: profit.total,
         };
+
+        // Fetch final wallet assets for endSnapshot
+        console.log(
+          `📸 Taking end snapshot for ${player.player_wallet_address}`
+        );
+        const { assets, totalValue } = await fetchWalletAssets(
+          player.player_wallet_address
+        );
+
+        // Create endSnapshot object
+        const endSnapshotData = {
+          snapshot_timestamp: new Date(),
+          assets: assets,
+          total_portfolio_value: totalValue,
+        };
+
+        // Find existing snapshot document or create new one
+        let userSnapshot = await UserAssetSnapshot.findOne({
+          competition: competition._id,
+          player: player._id,
+          wallet_address: player.player_wallet_address,
+        });
+
+        if (userSnapshot) {
+          // Update existing snapshot with endSnapshot
+          userSnapshot.endSnapshot = endSnapshotData;
+          await userSnapshot.save();
+          console.log(
+            `✅ Updated endSnapshot for player ${player.player_wallet_address}`
+          );
+        } else {
+          // Create new snapshot document with empty startSnapshot and current endSnapshot
+          userSnapshot = new UserAssetSnapshot({
+            competition: competition._id,
+            player: player._id,
+            wallet_address: player.player_wallet_address,
+            startSnapshot: {
+              snapshot_timestamp: new Date(competition.start_time),
+              assets: [],
+              total_portfolio_value: 0,
+            },
+            endSnapshot: endSnapshotData,
+          });
+          await userSnapshot.save();
+          console.log(
+            `🆕 Created new snapshot for player ${player.player_wallet_address}`
+          );
+        }
 
         const updatedPlayer = await Player.findByIdAndUpdate(
           player._id,
@@ -113,6 +258,10 @@ export const determineWinnerController = async (req, res) => {
           username: updatedPlayer.player_username,
           profit: profit.total,
           details: profit,
+          endSnapshot: {
+            asset_count: assets.length,
+            total_value: totalValue,
+          },
         });
       } catch (error) {
         console.error(`❌ Error processing player: ${error.message}`);
@@ -147,6 +296,7 @@ export const determineWinnerController = async (req, res) => {
       "Total Profit": winner.profit,
       "Winning Amount": updatedCompetition.winning_amount,
       "Profit Breakdown": winner.details,
+      "End Portfolio": winner.endSnapshot,
     });
 
     res.status(200).json({
@@ -158,8 +308,9 @@ export const determineWinnerController = async (req, res) => {
         profit_breakdown: {
           USDC: winner.details.USDC,
           USDT: winner.details.USDT,
-          SOL: winner.details.SOL, // Added SOL breakdown
+          SOL: winner.details.SOL,
         },
+        end_portfolio: winner.endSnapshot,
       },
       financials: {
         total_pool: entry_fee * participants.length,

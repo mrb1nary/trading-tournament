@@ -13,8 +13,8 @@ import updatePlayerInfo from "./routes/updatePlayerInfo.js";
 import fetchPlayer from "./routes/fetchPlayer.js";
 import fetchCompetition from "./routes/fetchCompetition.js";
 import createVersusParty from "./routes/createVersusPartyRoute.js";
+import fetchSnapshotRouter from "./routes/fetchSnapshot.js";
 import { dbConnect } from "./config/dbConfig.js";
-
 
 const app = express();
 const PORT = 3001;
@@ -31,8 +31,9 @@ app.use("/api", createCompetitionRouter);
 app.use("/api", joinCompetitionRouter);
 app.use("/api", closeCompetitionRouter);
 app.use("/api", signupPlayerRoute);
-app.use("/api", createVersusParty)
+app.use("/api", createVersusParty);
 app.use("/api", registerPlayerRoute);
+app.use("/api", fetchSnapshotRouter);
 app.use("/api", snapshotRoute);
 app.use("/api", endSnapshotRoute);
 
