@@ -19,13 +19,10 @@ import { dbConnect } from "./config/dbConfig.js";
 import dotenv from "dotenv";
 dotenv.config();
 
-
 console.log(
   "MongoDB URI:",
   process.env.MONGODB_CONNECTION_STRING ? "Loaded" : "Not set"
 );
-
-
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -48,6 +45,8 @@ app.use("/api", fetchSnapshotRouter);
 app.use("/api", snapshotRoute);
 app.use("/api", endSnapshotRoute);
 
+//Test Route
+app.get("/api/ping", (req, res) => res.send("pong"));
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server is running on http://localhost:${PORT}`);
