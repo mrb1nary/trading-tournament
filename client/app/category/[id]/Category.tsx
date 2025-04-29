@@ -5,6 +5,7 @@ import "../../globals.css";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useWallet } from "@solana/wallet-adapter-react";
+import axios from "axios";
 
 
 interface Competition {
@@ -117,15 +118,11 @@ export default function CategoryPage({ params }: { params: Params }) {
     const fetchCompetitions = async () => {
       try {
         setLoading(true);
-        const response = await fetch(
+        const response = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/fetchCompetition`
         );
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
+        const data = response.data;
 
         if (!data.competitions) {
           throw new Error("Invalid API response format");
@@ -144,14 +141,13 @@ export default function CategoryPage({ params }: { params: Params }) {
         );
 
         // Add `isJoined` property to each competition
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const enrichedCompetitions = filtered.map((comp: { participants: any[]; }) => ({
+        const enrichedCompetitions = filtered.map((comp: Competition) => ({
           ...comp,
-          isJoined: comp.participants.some(
-            (participant: { player: { player_wallet_address: string | undefined; }; }) =>
-              participant.player?.player_wallet_address ===
-              publicKey?.toString()
-          ),
+          isJoined: Array.isArray(comp.participants)
+            ? comp.participants.some(
+                (participant: string) => participant === publicKey?.toString()
+              )
+            : false,
         }));
 
         setApiCompetitions(enrichedCompetitions);
@@ -167,7 +163,7 @@ export default function CategoryPage({ params }: { params: Params }) {
     };
 
     fetchCompetitions();
-  }, [id, publicKey]); // Add publicKey as a dependency
+  }, [id, publicKey]);
 
   // Join competition function
   const handleJoinCompetition = async (competitionId: number) => {

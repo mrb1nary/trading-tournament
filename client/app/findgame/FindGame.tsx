@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import { Dropdown, DropdownItem } from "flowbite-react";
 import { FaSearch } from "react-icons/fa";
+import axios from "axios";
 
 interface Competition {
   _id: string;
@@ -65,19 +67,14 @@ function FindGame() {
     const fetchCompetitions = async () => {
       try {
         setLoading(true);
-        const response = await fetch(
+        const response = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/fetchCompetition`
         );
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch competitions");
-        }
-
-        const data = await response.json();
+        const data = response.data;
         const competitionsArray = data.competitions || [];
         setCompetitions(competitionsArray);
         setSearchFiltered([]);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         console.error("Error fetching competitions:", err);
         setError(err.message || "Failed to load competitions");
