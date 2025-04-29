@@ -108,7 +108,7 @@ const Navbar: React.FC = () => {
               <span className="ml-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </Link>
             <Link
-              href="/my-games"
+              href="/MyGames"
               className="text-text-primary hover:text-ribbit-green"
             >
               My games
