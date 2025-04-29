@@ -28,7 +28,7 @@ console.log(
 
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 dbConnect();
 app.use(cors());
@@ -49,5 +49,5 @@ app.use("/api", snapshotRoute);
 app.use("/api", endSnapshotRoute);
 
 app.listen(PORT, () => {
-  console.log(`Server is running on ${process.env.SERVER_URL} ${PORT}`);
+  console.log(`Server is running on ${process.env.SERVER_URL}:${PORT}`);
 });
