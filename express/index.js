@@ -28,7 +28,35 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 dbConnect();
-app.use(cors());
+
+const allowedOrigins = [
+  "https://ribbit01.netlify.app", // Replace with actual domain
+  "http://localhost:3000",
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) === -1) {
+        console.log(`Origin ${origin} not allowed by CORS`);
+        callback(null, false);
+      } else {
+        callback(null, true);
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  })
+);
+
+// Handle preflight requests
+app.options("*", cors());
+
+app.options("*", cors());
 app.use(express.json());
 app.use("/api", fetchTxRouter);
 app.use("/api", fetchCompetition);
