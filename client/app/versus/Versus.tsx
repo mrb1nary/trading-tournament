@@ -7,35 +7,15 @@ import GameList from "../components/GameList";
 import "../globals.css";
 import { useWallet } from "@solana/wallet-adapter-react";
 import Image from "next/image";
-import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
-import { Dayjs } from "dayjs";
-import { toast } from "react-toastify";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function VersusPage() {
   const { connected, publicKey } = useWallet();
   const [playerData, setPlayerData] = useState(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [formData, setFormData] = useState({
-    entry_fee: 0.05,
-    base_amount: 10,
-    start_time: null as Dayjs | null,
-    end_time: null as Dayjs | null,
-    winning_amount: 0,
-  });
-
-  const PLATFORM_FEE_PERCENTAGE = 10;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
-
-  // Calculate winning amount
-  useEffect(() => {
-    const totalPool = formData.entry_fee * 2; // For 1v1 games
-    const platformFee = totalPool * (PLATFORM_FEE_PERCENTAGE / 100);
-    setFormData((prev) => ({
-      ...prev,
-      winning_amount: totalPool - platformFee,
-    }));
-  }, [formData.entry_fee]);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const fetchPlayerData = async (address: string) => {
     if (!address || !apiUrl) return;
@@ -59,56 +39,6 @@ export default function VersusPage() {
     }
   }, [connected, publicKey]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!publicKey) {
-      toast.error("Wallet not connected!");
-      return;
-    }
-
-    try {
-      // Validate times
-      if (!formData.start_time || !formData.end_time) {
-        toast.error("Please select both start and end times");
-        return;
-      }
-
-      if (formData.end_time.isBefore(formData.start_time)) {
-        toast.error("End time must be after start time");
-        return;
-      }
-
-      const submissionData = {
-        authority: publicKey.toString(),
-        entry_fee: formData.entry_fee * 1000000000, // SOL → lamports
-        base_amount: formData.base_amount,
-        start_time: formData.start_time.unix(),
-        end_time: formData.end_time.unix(),
-        winning_amount: formData.winning_amount * 1000000000,
-        category: "TwoPlayers",
-      };
-
-      console.log("Submitting:", submissionData);
-
-      // Uncomment to enable actual submission
-      const response = await axios.post(
-        `${apiUrl}/createCompetition`,
-        submissionData
-      );
-      console.log("API Response:", response.data);
-
-      toast.success(
-        "Game created successfully! ",
-        response.data.competition_id
-      );
-      setShowCreateModal(false);
-    } catch (error) {
-      console.error("Submission error:", error);
-      toast.error("Failed to create game");
-    }
-  };
-
   return (
     <main className="min-h-screen relative overflow-hidden bg-black">
       <div className="absolute w-[150vw] h-[150vw] rounded-full -right-[75vw] top-1/2 -translate-y-1/2 pointer-events-none z-0 gradient-background" />
@@ -121,7 +51,7 @@ export default function VersusPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-12 px-4 max-w-5xl mx-auto">
           {/* Create a Party */}
           <div
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => router.push(`${pathname}/createGame`)}
             className="rounded-2xl p-10 text-center flex flex-col items-center justify-center hover:opacity-80 transition cursor-pointer aspect-square w-full max-w-sm mx-auto opacity-90 relative"
             style={{
               background: "linear-gradient(145deg, #1E2427 0%, #121518 100%)",
@@ -257,131 +187,6 @@ export default function VersusPage() {
             </div>
           </div>
         </div>
-
-        {/* Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
-            <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full text-black">
-              <h3 className="text-lg font-medium mb-4">Create 1v1 Game</h3>
-
-              <form onSubmit={handleSubmit}>
-                {/* Wallet Address */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium">
-                    Wallet Address
-                  </label>
-                  <input
-                    type="text"
-                    value={publicKey?.toString() || ""}
-                    disabled
-                    className="mt-1 block w-full rounded-md bg-gray-100 text-gray-500 cursor-not-allowed"
-                  />
-                </div>
-
-                {/* Entry Fee */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium">
-                    Entry Fee (SOL)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.entry_fee}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        entry_fee: parseFloat(e.target.value),
-                      })
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                  />
-                </div>
-
-                {/* Base Amount (USDT) - Added missing field */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium">
-                    Base Amount (USDT)
-                  </label>
-                  <input
-                    type="number"
-                    step="1"
-                    value={formData.base_amount}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        base_amount: parseInt(e.target.value),
-                      })
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                  />
-                </div>
-
-                {/* Date/Time Pickers */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium">
-                    Start Time
-                  </label>
-                  <DateTimePicker
-                    value={formData.start_time}
-                    onChange={(newValue) =>
-                      setFormData({
-                        ...formData,
-                        start_time: newValue,
-                      })
-                    }
-                    className="w-full [&_input]:text-black"
-                  />
-                </div>
-
-                <div className="mb-4">
-                  <label className="block text-sm font-medium">End Time</label>
-                  <DateTimePicker
-                    value={formData.end_time}
-                    onChange={(newValue) =>
-                      setFormData({
-                        ...formData,
-                        end_time: newValue,
-                      })
-                    }
-                    //@ts-expect-error Will look into the error
-                    minDateTime={formData.start_time}
-                    className="w-full [&_input]:text-black"
-                  />
-                </div>
-
-                {/* Winning Amount */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium">
-                    Winning Amount (SOL)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.winning_amount.toFixed(2)}
-                    disabled
-                    className="mt-1 block w-full rounded-md bg-gray-100 cursor-not-allowed"
-                  />
-                </div>
-
-                {/* Buttons */}
-                <div className="flex justify-end gap-3 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                  >
-                    Close
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                  >
-                    Create Game
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
 
         {/* Loading or Game List */}
         {isLoading ? (

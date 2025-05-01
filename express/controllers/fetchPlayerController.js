@@ -47,18 +47,21 @@ export const fetchPlayerController = async (req, res) => {
         wallet: player.player_wallet_address,
         username: player.player_username,
         stats,
-        competitions: player.competitions_played.map((cp) => ({
-          competition_id: cp.competition.id,
-          entry_fee: cp.entry_fee,
-          profit: cp.profits.total,
-          position: cp.position,
-          timeframe: {
-            start: cp.competition.start_time,
-            end: cp.competition.end_time,
-          },
-        })),
+        competitions: player.competitions_played
+          .filter((cp) => cp.competition)
+          .map((cp) => ({
+            competition_id: cp.competition.id,
+            entry_fee: cp.entry_fee,
+            profit: cp.profits.total,
+            position: cp.position,
+            timeframe: {
+              start: cp.competition.start_time,
+              end: cp.competition.end_time,
+            },
+          })),
       },
     });
+
   } catch (error) {
     console.error("Error fetching player:", error);
     return res.status(500).json({

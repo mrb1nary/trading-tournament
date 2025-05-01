@@ -1,4 +1,4 @@
-import { Competition } from "../models/competitionModel.js";
+import { Versus } from "../models/versusModel.js";
 import { Player } from "../models/playerModel.js";
 import dotenv from "dotenv";
 dotenv.config();
@@ -12,27 +12,35 @@ export const createVersusPartyController = async (req, res) => {
       start_time,
       end_time,
       winning_amount,
-      category,
+      custom_entry_fee,
+      custom_base_amount,
     } = req.body;
 
-    // Validate category first
-    if (category !== "TwoPlayers") {
-      return res.status(400).json({
-        error: "This endpoint only accepts TwoPlayers competitions",
-        code: "INVALID_CATEGORY",
-      });
-    }
+    // Prioritize custom values if they exist
+    const finalEntryFee =
+      custom_entry_fee !== undefined ? custom_entry_fee : entry_fee;
+    const finalBaseAmount =
+      custom_base_amount !== undefined ? custom_base_amount : base_amount;
 
     // Validate required fields
     const requiredFields = [
       "authority",
-      "entry_fee",
-      "base_amount",
       "start_time",
       "end_time",
       "winning_amount",
     ];
-    const missingFields = requiredFields.filter((field) => !req.body[field]);
+
+    // Check if either entry fee or base amount is missing
+    if (!finalEntryFee) requiredFields.push("entry_fee/custom_entry_fee");
+    if (!finalBaseAmount) requiredFields.push("base_amount/custom_base_amount");
+
+    const missingFields = requiredFields.filter((field) => {
+      if (field.includes("/")) {
+        const [field1, field2] = field.split("/");
+        return !req.body[field1] && !req.body[field2];
+      }
+      return !req.body[field];
+    });
 
     if (missingFields.length > 0) {
       return res.status(400).json({
@@ -43,8 +51,8 @@ export const createVersusPartyController = async (req, res) => {
 
     // Numeric validation
     const numericValues = {
-      entry_fee: Number(entry_fee),
-      base_amount: Number(base_amount),
+      entry_fee: Number(finalEntryFee),
+      base_amount: Number(finalBaseAmount),
       start_time: Number(start_time),
       end_time: Number(end_time),
       winning_amount: Number(winning_amount),
@@ -72,48 +80,47 @@ export const createVersusPartyController = async (req, res) => {
       });
     }
 
-    // Generate unique competition ID
-    const competitionId =
-      (Date.now() % 1000000) + Math.floor(Math.random() * 1000);
+    // Generate unique versus ID
+    const versusId = (Date.now() % 1000000) + Math.floor(Math.random() * 1000);
 
-    // Create competition with authority as participant
-    const newCompetition = await Competition.create({
+    // Create versus party with authority as participant
+    const newVersus = await Versus.create({
       authority,
-      id: competitionId,
+      id: versusId,
       max_players: 2,
       entry_fee: numericValues.entry_fee,
       base_amount: numericValues.base_amount,
       start_time: new Date(numericValues.start_time * 1000),
       end_time: new Date(numericValues.end_time * 1000),
       winning_amount: numericValues.winning_amount,
-      category: "TwoPlayers",
+      category: "Versus", // Fixed category for Versus schema
       active: true,
       current_players: 1,
-      participants: [{ player: player._id }],
+      participants: [player._id],
       payout_claimed: false,
     });
 
     // Format response
     res.status(201).json({
       success: true,
-      message: "TwoPlayer versus party created successfully",
-      competition_id: newCompetition.id,
+      message: "Versus party created successfully",
+      versus_id: newVersus.id,
       enrolled_player: authority,
       details: {
         entry_fee: `${numericValues.entry_fee / 1e9} SOL`,
         prize_pool: `${numericValues.base_amount / 1e9} SOL`,
-        start_time: newCompetition.start_time.toISOString(),
-        end_time: newCompetition.end_time.toISOString(),
+        start_time: newVersus.start_time.toISOString(),
+        end_time: newVersus.end_time.toISOString(),
         slots: `${1}/${2}`, // Current players/Max players
       },
     });
   } catch (error) {
     console.error("Versus party creation error:", error);
 
-    // Handle duplicate competition ID
+    // Handle duplicate versus ID
     if (error.code === 11000) {
       return res.status(409).json({
-        error: "Competition ID conflict - please retry",
+        error: "Versus ID conflict - please retry",
         code: "ID_CONFLICT",
       });
     }

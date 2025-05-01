@@ -1,16 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import Navbar from "../components/Navbar";
-import Hero from "../components/Hero";
+import Navbar from "../../components/Navbar";
+import Hero from "../../components/Hero";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs, { Dayjs } from "dayjs";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { motion } from "framer-motion";
-import axios from "axios";
 
 interface GameData {
   entry_fee: number;
@@ -138,11 +136,11 @@ function CreateGame() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     try {
-      if (!wallet.connected || !wallet.publicKey) {
+      if (!wallet.connected) {
         toast.error("Please connect your wallet first!");
         return;
       }
@@ -152,47 +150,21 @@ function CreateGame() {
         return;
       }
 
-      // Use custom entry/base if provided
-      const entryFee =
-        isCustomEntryFee && gameData.custom_entry_fee
-          ? parseFloat(gameData.custom_entry_fee)
-          : gameData.entry_fee;
-
-      const baseAmount =
-        isCustomBaseAmount && gameData.custom_base_amount
-          ? parseInt(gameData.custom_base_amount)
-          : gameData.base_amount;
-
-      // Prepare the payload as required by the backend
-      const payload = {
-        authority: wallet.publicKey.toString(),
-        entry_fee: Math.floor(entryFee * 1e9), // SOL to lamports (int)
-        base_amount: baseAmount,
-        start_time: gameData.start_time, // UNIX timestamp (seconds)
-        end_time: gameData.end_time, // UNIX timestamp (seconds)
-        winning_amount: Math.floor(gameData.winning_amount * 1e9), // SOL to lamports (int)
-        category: gameData.category, // e.g., "TwoPlayers"
+      const finalGameData = {
+        authority: wallet.publicKey?.toString(),
+        entry_fee: gameData.entry_fee,
+        base_amount: gameData.base_amount,
+        start_time: gameData.start_time,
+        end_time: gameData.end_time,
+        winning_amount: parseFloat(gameData.winning_amount.toFixed(3)),
+        category: gameData.category,
       };
 
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
-      const response = await axios.post(`${apiUrl}/createCompetition`, payload);
-
-      if (response.data && response.data.success) {
-        toast.success("Game created successfully!");
-        // Optionally, reset form or redirect
-
-        console.log(response.data);
-      } else {
-        toast.error(response.data.error || "Failed to create game");
-      }
-    } catch (error: any) {
+      console.log(finalGameData);
+      toast.success("Game created successfully!");
+    } catch (error) {
       console.error("Error submitting form:", error);
-      toast.error(
-        error?.response?.data?.error ||
-          error.message ||
-          "An error occurred while creating the game."
-      );
+      toast.error("An error occurred while creating the game.");
     }
   };
 

@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import Navbar from "../components/Navbar";
-import Hero from "../components/Hero";
+import Navbar from "../../components/Navbar";
+import Hero from "../../components/Hero";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs, { Dayjs } from "dayjs";
 import { toast, ToastContainer } from "react-toastify";
@@ -18,7 +17,6 @@ interface GameData {
   start_time: number | null;
   end_time: number | null;
   winning_amount: number;
-  category: string;
   custom_entry_fee: string;
   custom_base_amount: string;
 }
@@ -27,21 +25,9 @@ function CreateGame() {
   const wallet = useWallet();
   const PLATFORM_FEE_PERCENTAGE = 10; // 10%
 
-  // Map category to number of players
-  const categoryToPlayers: Record<string, number> = {
-    TwoPlayers: 2,
-    FourPlayers: 4,
-    SixPlayers: 6,
-    TwelvePlayers: 12,
-    TwentyFivePlayers: 25,
-  };
-
-  const calculateMaxWinningAmount = (
-    entryFee: number,
-    category: string
-  ): number => {
+  const calculateMaxWinningAmount = (entryFee: number): number => {
     try {
-      const totalPlayers = categoryToPlayers[category];
+      const totalPlayers = 2;
       const totalPool = entryFee * totalPlayers;
       const platformFee = totalPool * (PLATFORM_FEE_PERCENTAGE / 100);
       return totalPool - platformFee;
@@ -56,14 +42,14 @@ function CreateGame() {
     base_amount: 10,
     start_time: null,
     end_time: null,
-    winning_amount: calculateMaxWinningAmount(0.05, "SixPlayers"),
-    category: "SixPlayers",
+    winning_amount: calculateMaxWinningAmount(0.05),
     custom_entry_fee: "",
     custom_base_amount: "",
   });
 
   const [isCustomEntryFee, setIsCustomEntryFee] = useState(false);
   const [isCustomBaseAmount, setIsCustomBaseAmount] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (wallet.connected && wallet.publicKey) {
@@ -74,10 +60,7 @@ function CreateGame() {
   // Update winning amount when entry fee or category changes
   useEffect(() => {
     try {
-      const maxWinningAmount = calculateMaxWinningAmount(
-        gameData.entry_fee,
-        gameData.category
-      );
+      const maxWinningAmount = calculateMaxWinningAmount(gameData.entry_fee);
       setGameData((prevData) => ({
         ...prevData,
         winning_amount: maxWinningAmount,
@@ -85,7 +68,7 @@ function CreateGame() {
     } catch (error) {
       console.error("Error updating winning amount:", error);
     }
-  }, [gameData.entry_fee, gameData.category]);
+  }, [gameData.entry_fee]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -142,7 +125,7 @@ function CreateGame() {
     e.preventDefault();
 
     try {
-      if (!wallet.connected || !wallet.publicKey) {
+      if (!wallet.connected) {
         toast.error("Please connect your wallet first!");
         return;
       }
@@ -152,57 +135,49 @@ function CreateGame() {
         return;
       }
 
-      // Use custom entry/base if provided
-      const entryFee =
-        isCustomEntryFee && gameData.custom_entry_fee
-          ? parseFloat(gameData.custom_entry_fee)
-          : gameData.entry_fee;
+      // Set loading state
+      setIsSubmitting(true);
 
-      const baseAmount =
-        isCustomBaseAmount && gameData.custom_base_amount
-          ? parseInt(gameData.custom_base_amount)
-          : gameData.base_amount;
-
-      // Prepare the payload as required by the backend
-      const payload = {
-        authority: wallet.publicKey.toString(),
-        entry_fee: Math.floor(entryFee * 1e9), // SOL to lamports (int)
-        base_amount: baseAmount,
-        start_time: gameData.start_time, // UNIX timestamp (seconds)
-        end_time: gameData.end_time, // UNIX timestamp (seconds)
-        winning_amount: Math.floor(gameData.winning_amount * 1e9), // SOL to lamports (int)
-        category: gameData.category, // e.g., "TwoPlayers"
+      const finalGameData = {
+        authority: wallet.publicKey?.toString(),
+        entry_fee: Math.floor(gameData.entry_fee * 1e9), // Convert SOL to lamports
+        base_amount: gameData.base_amount,
+        start_time: gameData.start_time,
+        end_time: gameData.end_time,
+        winning_amount: Math.floor(
+          parseFloat(gameData.winning_amount.toFixed(3)) * 1e9
+        ), // Convert to lamports
       };
 
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
-      const response = await axios.post(`${apiUrl}/createCompetition`, payload);
 
-      if (response.data && response.data.success) {
-        toast.success("Game created successfully!");
-        // Optionally, reset form or redirect
-
-        console.log(response.data);
-      } else {
-        toast.error(response.data.error || "Failed to create game");
-      }
-    } catch (error: any) {
-      console.error("Error submitting form:", error);
-      toast.error(
-        error?.response?.data?.error ||
-          error.message ||
-          "An error occurred while creating the game."
+      // Send request to the versus party endpoint
+      const response = await axios.post(
+        `${apiUrl}/createVersusParty`,
+        finalGameData
       );
+
+      if (response.data.success) {
+        toast.success("Versus game created successfully!");
+        console.log("Versus game created:", response.data);
+        // Optionally redirect to a game details page or clear form
+      } else {
+        toast.error(response.data.error || "Failed to create versus game");
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        toast.error(
+          error.response.data.error || "Failed to create versus game"
+        );
+      } else {
+        toast.error("An error occurred while creating the game");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  const categoryOptions = [
-    { value: "TwoPlayers", label: "2 Players" },
-    { value: "FourPlayers", label: "4 Players" },
-    { value: "SixPlayers", label: "6 Players" },
-    { value: "TwelvePlayers", label: "12 Players" },
-    { value: "TwentyFivePlayers", label: "25 Players" },
-  ];
 
   const entryFeeOptions = [
     { value: 0.05, label: "0.05 SOL" },
@@ -369,16 +344,11 @@ function CreateGame() {
               <select
                 id="category"
                 name="category"
-                value={gameData.category}
-                onChange={handleInputChange}
+                value="Versus"
+                disabled
                 className="w-full px-4 py-3 bg-gray-700/50 rounded-lg text-white border border-gray-600 focus:border-green-500 focus:ring focus:ring-green-500/50 transition-all duration-300"
-                required
               >
-                {categoryOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
+                <option value="Versus">Versus</option>
               </select>
             </motion.div>
 
@@ -507,11 +477,13 @@ function CreateGame() {
             <motion.button
               type="submit"
               className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 transform hover:scale-105"
-              disabled={!wallet.connected}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              disabled={!wallet.connected || isSubmitting}
+              whileHover={{
+                scale: wallet.connected && !isSubmitting ? 1.05 : 1,
+              }}
+              whileTap={{ scale: wallet.connected && !isSubmitting ? 0.95 : 1 }}
             >
-              Create Game
+              {isSubmitting ? "Creating..." : "Create Versus Game"}
             </motion.button>
           </form>
         </motion.div>
