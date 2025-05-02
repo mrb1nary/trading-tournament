@@ -217,7 +217,7 @@ export default function CompetitionMode() {
       {/* Competition Content */}
       <div className="relative z-10 mt-10 max-w-5xl mx-auto px-4">
         {/* Tabs */}
-        <div className="grid grid-cols-4 gap-6 mb-8 border-b border-gray-700 pb-3">
+        <div className="grid grid-cols-4 gap-6 mb-8 border-b-2 border-gray-700 ">
           {tabs.map((tab) => (
             <button
               key={tab}
@@ -256,7 +256,7 @@ export default function CompetitionMode() {
               <div
                 key={index}
                 onClick={() => handleCardClick(card)}
-                className="bg-[#242424] rounded-2xl shadow-lg p-6 text-center relative flex flex-col justify-between 
+                className="bg-[linear-gradient(145deg,_#1e2427_0%,_#121518_100%)] rounded-2xl shadow-lg p-6 text-center relative flex flex-col justify-between 
 h-[380px] opacity-70 hover:opacity-100 transition-all duration-300 hover:scale-105 hover:bg-[#2a2a2a] cursor-pointer"
               >
                 {/* Flower SVG with Cash Prize Inside */}
