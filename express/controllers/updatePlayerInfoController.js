@@ -3,42 +3,35 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+
 export const updatePlayerInfoController = async (req, res) => {
   try {
-    // Extract the wallet address from request parameters or body
     const walletAddress =
       req.params.walletAddress || req.body.player_wallet_address;
 
     if (!walletAddress) {
       return res.status(400).json({
         success: false,
-        message: "Wallet address is required to identify the player",
+        message: "Wallet address is required",
       });
     }
 
-    // Extract only the allowed fields from the request body
-    const {
-      player_username,
-      twitter_handle,
-      player_email,
-      x_handle,
-      // We can also allow updating the wallet address itself if needed
-      new_wallet_address,
-    } = req.body;
+    // Extract updatable fields
+    const updateFields = {
+      ...(req.body.player_username && {
+        player_username: req.body.player_username,
+      }),
+      ...(req.body.twitter_handle && {
+        twitter_handle: req.body.twitter_handle,
+      }),
+      ...(req.body.tg_username && { tg_username: req.body.tg_username }),
+      ...(req.body.player_email && { player_email: req.body.player_email }),
+      ...(req.body.new_wallet_address && {
+        player_wallet_address: req.body.new_wallet_address,
+      }),
+    };
 
-    // Create an object with only the fields that are provided
-    const updateFields = {};
-
-    if (player_username !== undefined)
-      updateFields.player_username = player_username;
-    if (twitter_handle !== undefined)
-      updateFields.twitter_handle = twitter_handle;
-    if (player_email !== undefined) updateFields.player_email = player_email;
-    if (x_handle !== undefined) updateFields.x_handle = x_handle;
-    if (new_wallet_address !== undefined)
-      updateFields.player_wallet_address = new_wallet_address;
-
-    // If no fields to update, return an error
+    // Validate at least one field provided
     if (Object.keys(updateFields).length === 0) {
       return res.status(400).json({
         success: false,
@@ -46,27 +39,39 @@ export const updatePlayerInfoController = async (req, res) => {
       });
     }
 
-    // Find the player by wallet address and update with the new fields
+    // Upsert operation (update or create)
     const updatedPlayer = await Player.findOneAndUpdate(
       { player_wallet_address: walletAddress },
       updateFields,
-      { new: true, runValidators: true }
+      {
+        new: true,
+        runValidators: true,
+        upsert: true,
+        setDefaultsOnInsert: true, // Important for required fields
+      }
     );
 
-    if (!updatedPlayer) {
-      return res.status(404).json({
-        success: false,
-        message: "Player not found with the provided wallet address",
-      });
+    // For new players, add default values for required fields if missing
+    if (!updatedPlayer.player_email) {
+      updatedPlayer.player_email = `${walletAddress}@default.com`;
+      await updatedPlayer.save();
     }
 
     return res.status(200).json({
       success: true,
-      message: "Player information updated successfully",
-      data: updatedPlayer,
+      message: updatedPlayer.$isNew
+        ? "Player created successfully"
+        : "Player updated successfully",
+      data: {
+        wallet: updatedPlayer.player_wallet_address,
+        username: updatedPlayer.player_username,
+        email: updatedPlayer.player_email,
+        twitter: updatedPlayer.twitter_handle,
+        telegram: updatedPlayer.tg_username,
+      },
     });
   } catch (error) {
-    // Handle validation errors separately
+    // Handle validation errors
     if (error.name === "ValidationError") {
       const validationErrors = Object.values(error.errors).map(
         (err) => err.message
@@ -78,21 +83,33 @@ export const updatePlayerInfoController = async (req, res) => {
       });
     }
 
-    // Handle duplicate key errors (unique constraints)
+    // Handle duplicate key errors
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
+      let fieldName = field.replace("player_", "");
+
+      // Custom field names for error messages
+      const fieldMap = {
+        tg_username: "Telegram username",
+        twitter_handle: "Twitter handle",
+        player_email: "email address",
+      };
+
       return res.status(400).json({
         success: false,
-        message: `The ${field} is already taken`,
+        message: `The ${fieldMap[field] || fieldName} is already registered`,
       });
     }
 
+    // Generic error handling
     console.error("Error updating player information:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to update player information",
       error:
-        process.env.NODE_ENV === "development" ? error.message : "Server error",
+        process.env.NODE_ENV === "development"
+          ? error.message
+          : "Internal server error",
     });
   }
 };

@@ -74,6 +74,15 @@ const PlayerSchema = new mongoose.Schema(
         "Username can only contain alphanumeric characters",
       ],
     },
+    tg_username: {
+      type: String,
+      unique: true,
+      sparse: true,
+      match: [
+        /^@[a-zA-Z0-9_]{5,32}$/,
+        "Telegram username must start with @ and contain 5-32 letters, numbers or underscores",
+      ],
+    },
     total_profit: {
       type: Number,
       default: 0,
