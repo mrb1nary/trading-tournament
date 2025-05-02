@@ -8,6 +8,7 @@ import Hero from "../components/Hero";
 import { useRouter } from "next/navigation";
 import "../globals.css";
 import { useWallet } from "@solana/wallet-adapter-react";
+import GameList from "../components/GameList";
 
 interface ApiCompetition {
   _id: string;
@@ -39,15 +40,27 @@ interface ApiCompetition {
 //   timeLeft: string;
 // }
 
+// interface PlayerData {
+//   _id: string;
+//   player_wallet_address: string;
+//   twitter_handle: string;
+//   player_username: string;
+//   player_email: string;
+//   total_points: number;
+//   total_profit: number;
+//   competitions_played: ApiCompetition[];
+// }
+
 interface PlayerData {
-  _id: string;
+  id: string;
   player_wallet_address: string;
   twitter_handle: string;
   player_username: string;
+  tg_username: string;
   player_email: string;
   total_points: number;
   total_profit: number;
-  competitions_played: ApiCompetition[];
+  competitions_played: unknown[];
 }
 
 export default function CompetitionMode() {
@@ -176,7 +189,7 @@ export default function CompetitionMode() {
       {/* Competition Content */}
       <div className="relative z-10 mt-10 max-w-5xl mx-auto px-4">
         {/* Tabs */}
-        <div className="flex justify-between space-x-8 mb-8 border-b border-gray-700 pb-3">
+        <div className="grid grid-cols-4 gap-6 mb-8 border-b border-gray-700 pb-3">
           {tabs.map((tab) => (
             <button
               key={tab}
@@ -215,9 +228,8 @@ export default function CompetitionMode() {
               <div
                 key={index}
                 onClick={() => handleCardClick(card)}
-                className={`bg-[#242424] rounded-2xl shadow-lg p-6 text-center relative flex flex-col justify-between 
-                h-[380px] ${index !== 1 ? "opacity-70 hover:opacity-100" : ""} 
-                transition-all duration-300 hover:scale-105 hover:bg-[#2a2a2a] cursor-pointer`}
+                className="bg-[#242424] rounded-2xl shadow-lg p-6 text-center relative flex flex-col justify-between 
+h-[380px] opacity-70 hover:opacity-100 transition-all duration-300 hover:scale-105 hover:bg-[#2a2a2a] cursor-pointer"
               >
                 {/* Flower SVG with Cash Prize Inside */}
                 <div className="relative mx-auto mb-[-10rem] mt-[-2rem]">
@@ -257,6 +269,13 @@ export default function CompetitionMode() {
           Entry to play refers to the amount you need to pay to join the game.
           Base Amount is the amount you need in your wallet to participate.
         </div>
+      </div>
+
+      <div className="w-[90%] max-w-[90%] mx-auto">
+        <GameList
+          games={(playerData?.competitions_played as Competition[]) || []}
+          playerData={playerData || undefined}
+        />
       </div>
     </main>
   );
