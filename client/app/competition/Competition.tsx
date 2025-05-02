@@ -10,7 +10,7 @@ import "../globals.css";
 import { useWallet } from "@solana/wallet-adapter-react";
 import GameList from "../components/GameList";
 
-interface ApiCompetition {
+interface Competition {
   _id: string;
   authority: string;
   id: number;
@@ -18,19 +18,15 @@ interface ApiCompetition {
   current_players: number;
   entry_fee: number;
   base_amount: number;
-  start_time: string;
-  end_time: string;
+  start_time: string; // ISO date string
+  end_time: string; // ISO date string
   winning_amount: number;
-  category: string;
-  winner: string | null;
+  category: "TwoPlayers" | "SixPlayers" | "TwelvePlayers" | "TwentyFivePlayers";
+  winner: string | null; // Player ID
   payout_claimed: boolean;
-  participants: {
-    profit: number;
-    points_earned: number;
-    _id: string;
-  }[];
+  active: boolean;
+  participants: string[]; // Array of Player IDs
 }
-
 // interface Competition {
 //   id: number;
 //   start: string;
@@ -67,7 +63,39 @@ export default function CompetitionMode() {
   const [activeTab, setActiveTab] = useState("12 players");
   const router = useRouter();
 
-  const [playerData, setPlayerData] = useState<PlayerData | null>(null);
+  const [playerData, setPlayerData] = useState<null | {
+    _id: string;
+    wallet: string;
+    username: string;
+    email: string;
+    twitter: string;
+    telegram: string;
+    total_profit: number;
+    total_points: number;
+    total_competitions: number;
+    usdc_profit: number;
+    usdt_profit: number;
+    sol_profit: number;
+    win_rate: number;
+    total_trades: number;
+    average_position: number;
+    competitions: Array<{
+      competition_id: string;
+      category: string;
+      entry_fee: number;
+      prize_pool: number;
+      max_players: number;
+      position: number;
+      profit: number;
+      points_earned: number;
+      timeframe: {
+        start: string;
+        end: string;
+      };
+      winner: string | null;
+    }>;
+  }>(null);
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
@@ -273,7 +301,25 @@ h-[380px] opacity-70 hover:opacity-100 transition-all duration-300 hover:scale-1
 
       <div className="w-[90%] max-w-[90%] mx-auto">
         <GameList
-          games={(playerData?.competitions_played as Competition[]) || []}
+          games={
+            playerData?.competitions?.map((comp) => ({
+              _id: comp.competition_id,
+              authority: "",
+              id: 0,
+              max_players: comp.max_players,
+              current_players: 0,
+              entry_fee: comp.entry_fee,
+              base_amount: 0,
+              start_time: comp.timeframe.start,
+              end_time: comp.timeframe.end,
+              winning_amount: comp.prize_pool,
+              category: comp.category as Competition["category"],
+              winner: comp.winner,
+              payout_claimed: false,
+              active: false,
+              participants: [],
+            })) || []
+          }
           playerData={playerData || undefined}
         />
       </div>

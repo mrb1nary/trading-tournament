@@ -18,26 +18,28 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import Modal from "react-modal";
 
 export default function HomePage() {
-  interface Competition {
-    _id: string;
-    authority: string;
-    id: number;
-    max_players: number;
-    current_players: number;
-    entry_fee: number;
-    base_amount: number;
-    start_time: string;
-    end_time: string;
-    winning_amount: number;
-    category: string;
-    winner: string | null;
-    payout_claimed: boolean;
-    participants: {
-      profit: number;
-      points_earned: number;
-      _id: string;
-    }[];
-  }
+ interface Competition {
+   _id: string;
+   authority: string;
+   id: number;
+   max_players: number;
+   current_players: number;
+   entry_fee: number;
+   base_amount: number;
+   start_time: string; // ISO date string
+   end_time: string; // ISO date string
+   winning_amount: number;
+   category:
+     | "TwoPlayers"
+     | "SixPlayers"
+     | "TwelvePlayers"
+     | "TwentyFivePlayers";
+   winner: string | null; // Player ID
+   payout_claimed: boolean;
+   active: boolean;
+   participants: string[]; // Array of Player IDs
+ }
+
   
 
   const [modalIsOpen, setModalIsOpen] = useState(false);
@@ -55,17 +57,39 @@ export default function HomePage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  const [playerData, setPlayerData] = useState<null | {
-    _id: string;
-    player_wallet_address: string;
-    twitter_handle: string;
-    player_username: string;
-    tg_username: string;
-    player_email: string;
-    total_points: number;
-    total_profit: number;
-    competitions_played: unknown[];
-  }>(null);
+ const [playerData, setPlayerData] = useState<null | {
+   _id: string;
+   wallet: string;
+   username: string;
+   email: string;
+   twitter: string;
+   telegram: string;
+   total_profit: number;
+   total_points: number;
+   total_competitions: number;
+   usdc_profit: number;
+   usdt_profit: number;
+   sol_profit: number;
+   win_rate: number;
+   total_trades: number;
+   average_position: number;
+   competitions: Array<{
+     competition_id: string;
+     category: string;
+     entry_fee: number;
+     prize_pool: number;
+     max_players: number;
+     position: number;
+     profit: number;
+     points_earned: number;
+     timeframe: {
+       start: string;
+       end: string;
+     };
+     winner: string | null;
+   }>;
+ }>(null);
+
 
   const fetchWalletBalance = async () => {
     if (connected && publicKey && connection) {
@@ -87,12 +111,14 @@ export default function HomePage() {
     try {
       const response = await axios.get(`${apiUrl}/fetchPlayer/${address}`);
       setPlayerData(response.data.data);
+      console.log(response.data.data);
     } catch (error) {
       console.error("Error fetching player data:", error);
 
       setPlayerData(null);
     } finally {
       setIsLoading(false);
+      // console.log(playerData);
     }
   };
 
@@ -114,9 +140,9 @@ export default function HomePage() {
 
   useEffect(() => {
     if (playerData) {
-      setUsername(playerData.player_username || "");
-      setTgUsername(playerData.twitter_handle || "");
-      setXUsername(playerData.twitter_handle || "");
+      setUsername(playerData.username || "");
+      setTgUsername(playerData.telegram || "");
+      setXUsername(playerData.twitter || "");
     }
   }, [playerData]);
 
@@ -146,58 +172,70 @@ export default function HomePage() {
     }
   };
 
-  const handleConfirm = async () => {
-    if (!connected || !publicKey) {
-      toast.error("Wallet not connected");
-      return;
-    }
+ const handleConfirm = async () => {
+   if (!connected || !publicKey) {
+     toast.error("Wallet not connected");
+     return;
+   }
 
-    try {
-      // Log the data being sent
-      console.log({
-        player_wallet_address: walletAddress,
-        player_username: username,
-        twitter_handle: tgUsername,
-        x_handle: xUsername,
-      });
+   try {
+     // Log the data being sent
+     console.log("Updating player with:", {
+       player_wallet_address: walletAddress,
+       player_username: username,
+       twitter_handle: xUsername, // Changed from tgUsername
+       tg_username: tgUsername, // New field
+     });
 
-      // Make the API request
-      const response = await axios.post(`${apiUrl}/updatePlayerInfo`, {
-        player_wallet_address: walletAddress,
-        player_username: username,
-        twitter_handle: tgUsername,
-        x_handle: xUsername,
-      });
+     // Make the API request with corrected field names
+     const response = await axios.post(`${apiUrl}/updatePlayerInfo`, {
+       player_wallet_address: walletAddress,
+       player_username: username,
+       twitter_handle: xUsername, // Should come from Twitter input
+       tg_username: tgUsername, // Should come from Telegram input
+     });
 
-      // Handle successful response
-      if (response.data.success) {
-        toast.success("Profile updated successfully!");
+     // Handle successful response
+     if (response.data.success) {
+       toast.success("Profile updated successfully!");
 
-        // Update local playerData state with new values
-        if (playerData) {
-          setPlayerData({
-            ...playerData,
-            player_username: username,
-            tg_username: tgUsername,
-            twitter_handle: xUsername,
-          });
-        }
-      } else {
-        toast.error(response.data.message || "Failed to update profile");
-      }
-    } catch (error) {
-      console.error("Error updating player info:", error);
+       // Update local state with correct field names
+       if (playerData) {
+         setPlayerData({
+           ...playerData,
+           username: username,
+           twitter: xUsername,
+           telegram: tgUsername, // New field
+         });
+       }
+     } else {
+       toast.error(response.data.message || "Failed to update profile");
+     }
+   } catch (error) {
+     console.error("Error updating player info:", error);
 
-      // Display error message
-      if (axios.isAxiosError(error) && error.response) {
-        toast.error(error.response.data.message || "Failed to update profile");
-      } else {
-        toast.error("An error occurred while updating profile");
-      }
-    } finally {
-      closeModal();
-    }
-  };
+     // Improved error handling
+     if (axios.isAxiosError(error)) {
+       if (error.response) {
+         // Handle backend validation errors
+         if (error.response.data.errors) {
+           error.response.data.errors.forEach((err: string) =>
+             toast.error(err)
+           );
+         } else {
+           toast.error(error.response.data.message || "Update failed");
+         }
+       } else {
+         toast.error("Network error - please check your connection");
+       }
+     } else {
+       toast.error("An unexpected error occurred");
+     }
+   } finally {
+     closeModal();
+   }
+ };
+
 
   return (
     <>
@@ -391,7 +429,7 @@ export default function HomePage() {
                     {/* Username */}
                     <h3 className="font-semibold text-xl text-white">
                       {playerData
-                        ? playerData.player_username
+                        ? playerData.username
                         : "Not Connected"}
                     </h3>
                     {/* Wallet Address */}
@@ -436,7 +474,7 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center text-gray-400 text-sm">
                     <FaXTwitter className="mr-2" size={20} />
-                    {playerData ? playerData.twitter_handle : "N/A"}
+                    {playerData ? playerData.twitter : "N/A"}
                   </div>
                 </div>
 
@@ -448,7 +486,7 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center text-gray-400 text-sm">
                     <FaTelegram className="mr-2" size={20} />
-                    {playerData ? playerData.player_username : "N/A"}
+                    {playerData ? playerData.username : "N/A"}
                   </div>
                 </div>
               </div>
@@ -513,7 +551,7 @@ export default function HomePage() {
                     </div>
                     <div className="animate-fadeIn">
                       <h2 className="text-xl font-bold text-white bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
-                        {username || playerData?.player_username || "Paul"}
+                        {username || playerData?.username || "Paul"}
                       </h2>
                       <p className="text-gray-400 text-sm flex items-center">
                         {truncatedAddress}
@@ -629,7 +667,23 @@ export default function HomePage() {
           {/* Game List */}
           <div className="w-full">
             <GameList
-              games={(playerData?.competitions_played as Competition[]) || []}
+              games={(playerData?.competitions?.map((comp) => ({
+                _id: comp.competition_id,
+                authority: "", 
+                id: 0, 
+                max_players: comp.max_players,
+                current_players: 0, 
+                entry_fee: comp.entry_fee,
+                base_amount: 0, 
+                start_time: comp.timeframe.start,
+                end_time: comp.timeframe.end,
+                winning_amount: comp.prize_pool,
+                category: comp.category as Competition["category"],
+                winner: comp.winner,
+                payout_claimed: false, 
+                active: false,
+                participants: [], 
+              })) || [])}
               playerData={playerData || undefined}
             />
           </div>

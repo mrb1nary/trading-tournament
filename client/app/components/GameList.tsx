@@ -1,5 +1,4 @@
 import React from "react";
-
 interface Competition {
   _id: string;
   authority: string;
@@ -8,18 +7,16 @@ interface Competition {
   current_players: number;
   entry_fee: number;
   base_amount: number;
-  start_time: string;
-  end_time: string;
+  start_time: string; // ISO date string
+  end_time: string; // ISO date string
   winning_amount: number;
-  category: string;
-  winner: string | null;
+  category: "TwoPlayers" | "SixPlayers" | "TwelvePlayers" | "TwentyFivePlayers";
+  winner: string | null; // Player ID
   payout_claimed: boolean;
-  participants: {
-    profit: number;
-    points_earned: number;
-    _id: string;
-  }[];
+  active: boolean;
+  participants: string[]; // Array of Player IDs
 }
+
 
 interface GameListProps {
   games: Competition[];
