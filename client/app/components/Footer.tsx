@@ -14,7 +14,7 @@ export const Footer: React.FC = () => {
       <div className="max-w-6xl mx-auto flex flex-wrap justify-center text-center">
         {/* Left Section */}
         <div className="flex-1 min-w-[300px] mb-5">
-          <h3 className="text-4xl font-bold mb-3">klash.fun</h3>
+          <h3 className="text-4xl font-bold mb-3">Citadel</h3>
           <p className="text-sm font-normal mb-5">
             Solana&apos;s first CryptoTrading Competition platform
           </p>

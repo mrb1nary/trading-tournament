@@ -77,7 +77,7 @@ const Navbar: React.FC = () => {
         {/* Left Section */}
         <div className="flex items-center space-x-8">
           <Link href="/" className="text-ribbit-green text-2xl font-bold">
-            Ribbit
+            Citadel
           </Link>
 
           {/* Desktop Menu */}

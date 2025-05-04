@@ -31,7 +31,7 @@ const PORT = process.env.PORT || 3001;
 dbConnect();
 
 const allowedOrigins = [
-  "https://ribbit01.netlify.app", // Replace with actual domain
+  "https://citadelv1.netlify.app", // Replace with actual domain
   "http://localhost:3000",
 ];
 
