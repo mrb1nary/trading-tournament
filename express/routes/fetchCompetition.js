@@ -3,6 +3,10 @@ import { fetchCompetitionController } from "../controllers/fetchCompetitionsCont
 
 const router = express.Router();
 
-router.route("/fetchCompetition").post(fetchCompetitionController);
+// Handle both parameterized GET and POST requests
+router
+  .route("/fetchCompetition/:competition_id?")
+  .get(fetchCompetitionController)
+  .post(fetchCompetitionController);
 
 export default router;

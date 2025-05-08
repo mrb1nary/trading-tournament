@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
@@ -8,14 +9,22 @@ import "../globals.css";
 import { useWallet } from "@solana/wallet-adapter-react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
+import { toast } from "react-toastify";
+
 
 export default function VersusPage() {
   const { connected, publicKey } = useWallet();
-  const [playerData, setPlayerData] = useState(null);
+  const [playerData, setPlayerData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
   const router = useRouter();
   const pathname = usePathname();
+
+  // Modal state
+  const [joinModalOpen, setJoinModalOpen] = useState(false);
+  const [joinCompetitionId, setJoinCompetitionId] = useState("");
+  const [joinError, setJoinError] = useState<string | null>(null);
+  const [joining, setJoining] = useState(false);
 
   const fetchPlayerData = async (address: string) => {
     if (!address || !apiUrl) return;
@@ -39,6 +48,62 @@ export default function VersusPage() {
     }
   }, [connected, publicKey]);
 
+  const handleJoinVersus = async () => {
+    setJoining(true);
+    setJoinError(null);
+
+    try {
+      if (!publicKey) {
+        throw new Error("Wallet not connected");
+      }
+
+      if (!joinCompetitionId) {
+        throw new Error("Please enter a valid game code");
+      }
+
+      const response = await axios.post(`${apiUrl}/joinVersus`, {
+        versus_id: parseInt(joinCompetitionId),
+        wallet_address: publicKey.toString(),
+      });
+
+      if (response.data.success) {
+        setJoinModalOpen(false);
+        setJoinCompetitionId("");
+        toast.success("Successfully joined versus game!");
+
+        // Redirect to snapshot page
+        router.push(`/snapshot/${joinCompetitionId}`); 
+
+        // Refresh game list
+        if (playerData) {
+          fetchPlayerData(publicKey.toString());
+        }
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || err.message;
+      const errorCode = err.response?.data?.code;
+
+      switch (errorCode) {
+        case "GAME_FULL":
+          setJoinError("This game is already full");
+          break;
+        case "ALREADY_JOINED":
+          setJoinError("You've already joined this game");
+          break;
+        case "GAME_STARTED":
+          setJoinError("Game has already started");
+          break;
+        default:
+          setJoinError(errorMessage || "Failed to join game");
+      }
+
+      toast.error(errorMessage || "Join failed");
+    } finally {
+      setJoining(false);
+    }
+  };
+
+
   return (
     <main className="min-h-screen relative overflow-hidden bg-black">
       <div className="absolute w-[150vw] h-[150vw] rounded-full -right-[75vw] top-1/2 -translate-y-1/2 pointer-events-none z-0 gradient-background" />
@@ -58,27 +123,7 @@ export default function VersusPage() {
               boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
             }}
           >
-            {/* Help icon with tooltip */}
-            <div className="absolute top-4 right-4 group">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-gray-400 hover:text-green-500 transition-colors"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <div className="absolute hidden group-hover:block right-0 bg-gray-800 text-white p-2 rounded shadow-lg z-10 w-64 text-center">
-                Enter details to create a party
-              </div>
-            </div>
-
+            {/* ...icon and tooltip... */}
             <div className="flex items-center justify-center h-full">
               <div className="flex flex-col items-center">
                 <div className="mb-6">
@@ -104,28 +149,9 @@ export default function VersusPage() {
               background: "linear-gradient(145deg, #1E2427 0%, #121518 100%)",
               boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
             }}
+            onClick={() => setJoinModalOpen(true)}
           >
-            {/* Help icon with tooltip */}
-            <div className="absolute top-4 right-4 group">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-gray-400 hover:text-green-500 transition-colors"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <div className="absolute hidden group-hover:block right-0 bg-gray-800 text-white p-2 rounded shadow-lg z-10 w-64 text-center">
-                Someone shared a invite code with you? Enter it here!
-              </div>
-            </div>
-
+            {/* ...icon and tooltip... */}
             <div className="flex items-center justify-center h-full">
               <div className="flex flex-col items-center">
                 <div className="mb-6">
@@ -150,27 +176,7 @@ export default function VersusPage() {
               boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
             }}
           >
-            {/* Help icon with tooltip */}
-            <div className="absolute top-4 right-4 group">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-gray-400 hover:text-green-500 transition-colors"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <div className="absolute hidden group-hover:block right-0 bg-gray-800 text-white p-2 rounded shadow-lg z-10 w-64 text-center">
-                A list of all the parties you have joined
-              </div>
-            </div>
-
+            {/* ...icon and tooltip... */}
             <div className="flex items-center justify-center h-full">
               <div className="flex flex-col items-center">
                 <div className="mb-6">
@@ -188,6 +194,55 @@ export default function VersusPage() {
           </div>
         </div>
 
+        {/* Join Game Modal */}
+        {joinModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+            <div className="bg-[#23272A] rounded-2xl p-8 w-full max-w-md shadow-2xl relative">
+              <button
+                className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                onClick={() => setJoinModalOpen(false)}
+              >
+                &times;
+              </button>
+              <h2 className="text-2xl font-semibold text-white mb-4 text-center">
+                Join a Game
+              </h2>
+              <input
+                type="text"
+                className="w-full px-4 py-3 rounded-lg bg-[#181B1E] text-white mb-4 border border-gray-700 focus:border-green-400 outline-none"
+                placeholder="Enter Competition ID"
+                value={joinCompetitionId}
+                onChange={(e) =>
+                  setJoinCompetitionId(e.target.value.replace(/\D/g, ""))
+                }
+                maxLength={10}
+                disabled={joining}
+              />
+              {joinError && (
+                <div className="text-red-500 text-sm mb-2 text-center">
+                  {joinError}
+                </div>
+              )}
+              <div className="flex justify-center gap-4 mt-4">
+                <button
+                  className="bg-green-500 hover:bg-green-600 text-black font-semibold px-6 py-2 rounded-full transition"
+                  onClick={handleJoinVersus}
+                  disabled={joining}
+                >
+                  {joining ? "Joining..." : "Join"}
+                </button>
+                <button
+                  className="bg-gray-700 hover:bg-gray-600 text-white font-semibold px-6 py-2 rounded-full transition"
+                  onClick={() => setJoinModalOpen(false)}
+                  disabled={joining}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Loading or Game List */}
         {isLoading ? (
           <div className="w-full text-center py-8">
@@ -200,8 +255,7 @@ export default function VersusPage() {
           </div>
         ) : (
           <GameList
-            //@ts-expect-error - playerData is not undefined
-            games={(playerData?.competitions_played as Competition[]) || []}
+            games={(playerData?.competitions_played as any[]) || []}
             playerData={playerData || undefined}
           />
         )}

@@ -5,6 +5,10 @@ const VersusSchema = new mongoose.Schema({
     type: String,
     required: true,
     index: true,
+    validate: {
+      validator: (v) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(v),
+      message: "Invalid Solana wallet address format",
+    },
   },
   active: {
     type: Boolean,
@@ -21,11 +25,14 @@ const VersusSchema = new mongoose.Schema({
     type: Number,
     required: true,
     unique: true,
+    min: 100000,
+    max: 999999,
   },
   max_players: {
     type: Number,
     required: true,
     min: 2,
+    max: 25,
   },
   current_players: {
     type: Number,
@@ -40,12 +47,14 @@ const VersusSchema = new mongoose.Schema({
   entry_fee: {
     type: Number,
     required: true,
-    min: 0,
+    min: 0.01,
+    max: 100,
   },
   base_amount: {
     type: Number,
     required: true,
-    min: 0,
+    min: 10,
+    max: 10000,
   },
   start_time: {
     type: Date,
@@ -60,15 +69,22 @@ const VersusSchema = new mongoose.Schema({
   end_time: {
     type: Date,
     required: true,
+    validate: {
+      validator: function (v) {
+        return v > this.start_time;
+      },
+      message: "End time must be after start time",
+    },
   },
   winning_amount: {
     type: Number,
     required: true,
-    min: 0,
+    min: 0.01,
+    max: 100000,
   },
   category: {
     type: String,
-    enum: ["Versus"], // Only allow "Versus"
+    enum: ["Versus"],
     required: true,
     default: "Versus",
   },
@@ -81,17 +97,25 @@ const VersusSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  participants: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Player",
+  participants: {
+    type: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Player",
+      },
+    ],
+    validate: {
+      validator: function (arr) {
+        return new Set(arr.map((id) => id.toString())).size === arr.length;
+      },
+      message: "Duplicate players in competition",
     },
-  ],
+  },
 });
 
-// Indexes for efficient queries
+// Optimized indexes
 VersusSchema.index({ start_time: 1, end_time: 1 });
 VersusSchema.index({ category: 1, winning_amount: 1 });
-VersusSchema.index({ participants: 1 }); // For player lookups
+VersusSchema.index({ participants: 1 });
 
 export const Versus = mongoose.model("Versus", VersusSchema);

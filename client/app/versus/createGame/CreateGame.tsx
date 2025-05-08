@@ -140,13 +140,13 @@ function CreateGame() {
 
       const finalGameData = {
         authority: wallet.publicKey?.toString(),
-        entry_fee: Math.floor(gameData.entry_fee * 1e9), // Convert SOL to lamports
-        base_amount: gameData.base_amount,
+        entry_fee: Math.floor(gameData.entry_fee * 1e9), // Convert to lamports
+        base_amount: Math.floor(gameData.base_amount * 1e6), // convert to base units of USDT
         start_time: gameData.start_time,
         end_time: gameData.end_time,
         winning_amount: Math.floor(
           parseFloat(gameData.winning_amount.toFixed(3)) * 1e9
-        ), // Convert to lamports
+        ), // convert to lamports
       };
 
       const apiUrl =

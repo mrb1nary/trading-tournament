@@ -19,7 +19,7 @@ export const joinCompetitionController = async (req, res) => {
     const competition = await Competition.findOne({
       id: competition_id,
     }).populate({
-      path: "participants.player",
+      path: "participants",
       select: "player_wallet_address",
     });
 
@@ -60,7 +60,7 @@ export const joinCompetitionController = async (req, res) => {
 
     // Check existing participation using wallet address
     const hasJoined = competition.participants.some(
-      (p) => p.player?.player_wallet_address === wallet_address
+      (p) => p.player_wallet_address === wallet_address
     );
 
     if (hasJoined) {
@@ -82,14 +82,8 @@ export const joinCompetitionController = async (req, res) => {
       });
     }
 
-    // Add participant with full structure
-    competition.participants.push({
-      player: player._id,
-      profit: 0,
-      points_earned: 0,
-      position: null,
-    });
-
+    // Add participant (only player ID as per schema)
+    competition.participants.push(player._id);
     competition.current_players += 1;
 
     await competition.save();

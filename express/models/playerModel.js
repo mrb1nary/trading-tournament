@@ -21,7 +21,38 @@ const CompetitionPlayedSchema = new mongoose.Schema(
     profits: {
       USDC: { type: ProfitSchema, default: () => ({}) },
       USDT: { type: ProfitSchema, default: () => ({}) },
-      SOL: { type: ProfitSchema, default: () => ({}) }, // Added SOL tracking
+      SOL: { type: ProfitSchema, default: () => ({}) },
+      total: { type: Number, default: 0 },
+    },
+    points_earned: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    position: {
+      type: Number,
+      min: 1,
+    },
+    entry_fee: {
+      type: Number,
+      required: true,
+    },
+  },
+  { _id: false }
+);
+
+const VersusPlayedSchema = new mongoose.Schema(
+  {
+    versus: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Versus",
+      required: true,
+      index: true,
+    },
+    profits: {
+      USDC: { type: ProfitSchema, default: () => ({}) },
+      USDT: { type: ProfitSchema, default: () => ({}) },
+      SOL: { type: ProfitSchema, default: () => ({}) },
       total: { type: Number, default: 0 },
     },
     points_earned: {
@@ -94,6 +125,7 @@ const PlayerSchema = new mongoose.Schema(
       min: 0,
     },
     competitions_played: [CompetitionPlayedSchema],
+    versus_played: [VersusPlayedSchema],
   },
   {
     timestamps: true,
@@ -108,23 +140,34 @@ const PlayerSchema = new mongoose.Schema(
   }
 );
 
-// Virtual for lifetime win rate using total profits
+// Virtual properties
 PlayerSchema.virtual("win_rate").get(function () {
-  if (!this.competitions_played || this.competitions_played.length === 0)
-    return 0;
-
+  if (!this.competitions_played?.length) return 0;
   const totalProfit = this.competitions_played.reduce(
     (sum, comp) => sum + (comp.profits?.total || 0),
     0
   );
-
   return parseFloat((totalProfit / this.competitions_played.length).toFixed(2));
 });
 
-// Compound index for efficient lookups
+PlayerSchema.virtual("versus_win_rate").get(function () {
+  if (!this.versus_played?.length) return 0;
+  const totalProfit = this.versus_played.reduce(
+    (sum, vs) => sum + (vs.profits?.total || 0),
+    0
+  );
+  return parseFloat((totalProfit / this.versus_played.length).toFixed(2));
+});
+
+// Separate indexes to avoid parallel arrays error
 PlayerSchema.index({
   player_wallet_address: 1,
   "competitions_played.competition": 1,
+});
+
+PlayerSchema.index({
+  player_wallet_address: 1,
+  "versus_played.versus": 1,
 });
 
 PlayerSchema.plugin(mongooseUniqueValidator, {

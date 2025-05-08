@@ -26,7 +26,6 @@ interface Competition {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   participants: any[];
 }
-
 interface CompetitionFilter {
   id: number;
   start: string;
@@ -35,11 +34,10 @@ interface CompetitionFilter {
   time: string;
   players: string;
   startIn: string;
-  canJoin: boolean;
-  isFull: boolean;
-  hasStarted: boolean;
-  isJoined: boolean;
+  actionStatus: "join" | "ongoing" | "expired" | "joined" | "full";
 }
+
+
 interface Params {
   id: string;
 }
@@ -48,7 +46,7 @@ export default function CategoryPage({ params }: { params: Params }) {
 
   const [activeFilter, setActiveFilter] = useState("All");
   const [apiCompetitions, setApiCompetitions] = useState<Competition[]>([]);
-
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [joiningCompetition, setJoiningCompetition] = useState<number | null>(
@@ -220,45 +218,55 @@ export default function CategoryPage({ params }: { params: Params }) {
       setJoiningCompetition(null);
     }
   };
+  
 
-  // Convert API data to UI format
+  
   const allCompetitions: CompetitionFilter[] = useMemo(() => {
-    if (apiCompetitions.length === 0) {
-      return [];
-    }
+    if (apiCompetitions.length === 0) return [];
 
     return apiCompetitions.map((comp): CompetitionFilter => {
       const startDate = new Date(comp.start_time);
       const endDate = new Date(comp.end_time);
       const now = new Date();
-      console.log(comp);
 
-      // Calculate duration in hours
+      // Duration calculation
       const durationHours = Math.ceil(
         (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60)
       );
 
-      // Calculate time until start
+      // Time until start calculation
       const timeUntilStart = startDate.getTime() - now.getTime();
       let startIn = "Starting soon";
-
       if (timeUntilStart > 0) {
         const minutes = Math.floor(timeUntilStart / (1000 * 60)) % 60;
         const seconds = Math.floor(timeUntilStart / 1000) % 60;
         startIn = `${minutes}min${seconds}sec`;
       }
 
-      // Check if competition can be joined
-      const canJoin =
-        timeUntilStart > 0 && comp.current_players < comp.max_players;
-      const isFull = comp.current_players >= comp.max_players;
-      const hasStarted = timeUntilStart <= 0;
-
-      // Check if the current wallet has already joined this competition
+      // Status logic
       const isJoined = comp.participants.some(
         (participant) =>
-          participant.player?.player_wallet_address === publicKey?.toString()
+          (typeof participant === "string"
+            ? participant
+            : participant.player?.player_wallet_address) ===
+          publicKey?.toString()
       );
+      const isFull = comp.current_players >= comp.max_players;
+      const hasStarted = now >= startDate;
+      const hasEnded = now >= endDate;
+
+      let actionStatus: "join" | "ongoing" | "expired" | "joined" | "full" =
+        "join";
+      if (isJoined) {
+        actionStatus = "joined";
+      } else if (isFull) {
+        actionStatus = "full";
+      } else if (hasEnded) {
+        actionStatus = "expired";
+      } else if (hasStarted) {
+        actionStatus = "ongoing";
+      }
+
       return {
         id: comp.id,
         start:
@@ -281,10 +289,7 @@ export default function CategoryPage({ params }: { params: Params }) {
         time: `${durationHours} hour`,
         players: `${comp.current_players}/${comp.max_players}`,
         startIn,
-        canJoin,
-        isFull,
-        hasStarted,
-        isJoined,
+        actionStatus, // Now properly included in the interface
       };
     });
   }, [apiCompetitions, publicKey]);
@@ -411,14 +416,26 @@ export default function CategoryPage({ params }: { params: Params }) {
                 <div>{competition.players}</div>
                 <div className="text-yellow-500">{competition.startIn}</div>
                 <div>
-                  {competition.isJoined ? (
+                  {competition.actionStatus === "joined" ? (
                     <button
                       disabled
                       className="px-6 py-3 rounded-full bg-yellow-400 text-black font-bold shadow-lg cursor-not-allowed"
                     >
                       Joined
                     </button>
-                  ) : competition.canJoin ? (
+                  ) : competition.actionStatus === "full" ? (
+                    <span className="px-6 py-3 rounded-full bg-red-500 text-white font-bold shadow-lg">
+                      Full
+                    </span>
+                  ) : competition.actionStatus === "expired" ? (
+                    <span className="px-6 py-3 rounded-full bg-red-500 text-white font-bold shadow-lg">
+                      Expired
+                    </span>
+                  ) : competition.actionStatus === "ongoing" ? (
+                    <span className="px-6 py-3 rounded-full bg-yellow-500 text-black font-bold shadow-lg">
+                      Ongoing
+                    </span>
+                  ) : (
                     <button
                       onClick={() => handleJoinCompetition(competition.id)}
                       disabled={joiningCompetition === competition.id}
@@ -432,12 +449,6 @@ export default function CategoryPage({ params }: { params: Params }) {
                         ? "Joining..."
                         : "Join"}
                     </button>
-                  ) : competition.isFull ? (
-                    <span className="text-red-500">Full</span>
-                  ) : competition.hasStarted ? (
-                    <span className="text-yellow-500">Started</span>
-                  ) : (
-                    <span className="text-gray-500">Unavailable</span>
                   )}
                 </div>
               </div>

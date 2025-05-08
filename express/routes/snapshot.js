@@ -4,6 +4,6 @@ import { snapshotController } from "../controllers/snapshotController.js";
 
 const router = express.Router();
 
-router.route("/snapshot").get(snapshotController);
+router.route("/snapshot").post(snapshotController);
 
 export default router;

@@ -13,8 +13,9 @@ import updatePlayerInfo from "./routes/updatePlayerInfo.js";
 import fetchPlayer from "./routes/fetchPlayer.js";
 import fetchCompetition from "./routes/fetchCompetition.js";
 import createVersusParty from "./routes/createVersusPartyRoute.js";
-import fetchVersusRoute from "./routes/fetchVersus.js";
 import fetchSnapshotRouter from "./routes/fetchSnapshot.js";
+import fetchVersusRoute from "./routes/fetchVersusRoute.js";
+import joinVersusRoute from "./routes/joinVersusRoute.js";
 import { dbConnect } from "./config/dbConfig.js";
 
 import dotenv from "dotenv";
@@ -33,6 +34,7 @@ dbConnect();
 const allowedOrigins = [
   "https://citadelv1.netlify.app", // Replace with actual domain
   "http://localhost:3000",
+  "http://localhost:3001",
 ];
 
 app.use(
@@ -60,7 +62,6 @@ app.options("*", cors());
 app.options("*", cors());
 app.use(express.json());
 app.use("/api", fetchTxRouter);
-app.use("/api", fetchVersusRoute);
 app.use("/api", fetchCompetition);
 app.use("/api", fetchPlayer);
 app.use("/api", updatePlayerInfo);
@@ -69,6 +70,8 @@ app.use("/api", createCompetitionRouter);
 app.use("/api", joinCompetitionRouter);
 app.use("/api", closeCompetitionRouter);
 app.use("/api", signupPlayerRoute);
+app.use("/api", fetchVersusRoute);
+app.use("/api", joinVersusRoute);
 app.use("/api", createVersusParty);
 app.use("/api", registerPlayerRoute);
 app.use("/api", fetchSnapshotRouter);

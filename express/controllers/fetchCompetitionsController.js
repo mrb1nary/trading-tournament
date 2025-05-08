@@ -3,7 +3,7 @@ import { Player } from "../models/playerModel.js";
 
 export const fetchCompetitionController = async (req, res) => {
   try {
-    const { competition_id } = req.body;
+    const competition_id = req.params.competition_id || req.body.competition_id;
 
     // Handle single competition lookup
     if (competition_id) {

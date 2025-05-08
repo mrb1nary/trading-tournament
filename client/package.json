@@ -18,6 +18,7 @@
     "@mui/x-date-pickers": "^7.28.3",
     "@netlify/plugin-nextjs": "^5.10.0",
     "@pythnetwork/client": "^2.22.1",
+    "@solana/spl-token": "^0.4.13",
     "@solana/spl-token-registry": "^0.2.4574",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",

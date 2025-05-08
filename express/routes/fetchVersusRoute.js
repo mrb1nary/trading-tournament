@@ -1,6 +1,6 @@
 import express from "express";
 
-import { fetchVersusController } from "../controllers/fetchVersusParty.js";
+import { fetchVersusController } from "../controllers/fetchVersusController.js";
 
 const router = express.Router();
 

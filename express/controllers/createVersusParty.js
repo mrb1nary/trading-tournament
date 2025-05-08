@@ -1,5 +1,6 @@
 import { Versus } from "../models/versusModel.js";
 import { Player } from "../models/playerModel.js";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -16,120 +17,134 @@ export const createVersusPartyController = async (req, res) => {
       custom_base_amount,
     } = req.body;
 
-    // Prioritize custom values if they exist
-    const finalEntryFee =
-      custom_entry_fee !== undefined ? custom_entry_fee : entry_fee;
-    const finalBaseAmount =
-      custom_base_amount !== undefined ? custom_base_amount : base_amount;
-
-    // Validate required fields
-    const requiredFields = [
-      "authority",
-      "start_time",
-      "end_time",
-      "winning_amount",
-    ];
-
-    // Check if either entry fee or base amount is missing
-    if (!finalEntryFee) requiredFields.push("entry_fee/custom_entry_fee");
-    if (!finalBaseAmount) requiredFields.push("base_amount/custom_base_amount");
-
-    const missingFields = requiredFields.filter((field) => {
-      if (field.includes("/")) {
-        const [field1, field2] = field.split("/");
-        return !req.body[field1] && !req.body[field2];
-      }
-      return !req.body[field];
-    });
-
-    if (missingFields.length > 0) {
-      return res.status(400).json({
-        error: `Missing required fields: ${missingFields.join(", ")}`,
-        code: "MISSING_FIELDS",
-      });
-    }
-
-    // Numeric validation
-    const numericValues = {
-      entry_fee: Number(finalEntryFee),
-      base_amount: Number(finalBaseAmount),
-      start_time: Number(start_time),
-      end_time: Number(end_time),
-      winning_amount: Number(winning_amount),
+    // Convert from lamports/base units to proper decimals
+    const convertUnits = {
+      entry_fee: (val) => Number(val) / LAMPORTS_PER_SOL,
+      base_amount: (val) => Number(val) / 1000000, // USDT has 6 decimals
+      winning_amount: (val) => Number(val) / LAMPORTS_PER_SOL,
     };
 
-    for (const [field, value] of Object.entries(numericValues)) {
-      if (isNaN(value) || value <= 0) {
+    // Process values with unit conversion
+    const processedValues = {
+      entry_fee: convertUnits.entry_fee(custom_entry_fee ?? entry_fee),
+      base_amount: convertUnits.base_amount(custom_base_amount ?? base_amount),
+      winning_amount: convertUnits.winning_amount(winning_amount),
+      start_time: Number(start_time),
+      end_time: Number(end_time),
+    };
+
+    // Validate numeric ranges after conversion
+    const validations = [
+      {
+        check:
+          processedValues.entry_fee < 0.01 || processedValues.entry_fee > 100,
+        error: "Entry fee must be between 0.01 and 100 SOL",
+        code: "INVALID_ENTRY_FEE",
+      },
+      {
+        check:
+          processedValues.base_amount < 10 ||
+          processedValues.base_amount > 10000,
+        error: "Base amount must be between 10 and 10,000 USDT",
+        code: "INVALID_BASE_AMOUNT",
+      },
+      {
+        check:
+          processedValues.winning_amount < 0.01 ||
+          processedValues.winning_amount > 100000,
+        error: "Winning amount must be between 0.01 and 100,000 SOL",
+        code: "INVALID_WINNING_AMOUNT",
+      },
+    ];
+
+    for (const validation of validations) {
+      if (validation.check) {
         return res.status(400).json({
-          error: `Invalid ${field.replace("_", " ")} value`,
-          code: "INVALID_NUMERIC_VALUE",
+          error: validation.error,
+          code: validation.code,
         });
       }
     }
 
-    // Verify authority is a registered player
-    const player = await Player.findOne({ player_wallet_address: authority })
-      .select("_id")
-      .lean();
+    // Convert timestamps
+    const startDate = new Date(processedValues.start_time);
+    const endDate = new Date(processedValues.end_time);
 
+    // Time validation
+    if (startDate >= endDate) {
+      return res.status(400).json({
+        error: "End time must be after start time",
+        code: "INVALID_TIME_RANGE",
+      });
+    }
+
+    // Verify player exists
+    const player = await Player.findOne({ player_wallet_address: authority });
     if (!player) {
       return res.status(403).json({
-        error: "Authority must be a registered player",
+        error: "Authority wallet not registered",
+        code: "UNREGISTERED_PLAYER",
         solution: "Complete player registration first",
-        code: "PLAYER_NOT_REGISTERED",
       });
     }
 
     // Generate unique versus ID
-    const versusId = (Date.now() % 1000000) + Math.floor(Math.random() * 1000);
+    let versusId;
+    let attempts = 0;
+    do {
+      versusId = Math.floor(100000 + Math.random() * 900000);
+      attempts++;
+      if (attempts > 5) throw new Error("Failed to generate unique versus ID");
+    } while (await Versus.exists({ id: versusId }));
 
-    // Create versus party with authority as participant
+    // Create versus game with proper values
     const newVersus = await Versus.create({
       authority,
       id: versusId,
       max_players: 2,
-      entry_fee: numericValues.entry_fee,
-      base_amount: numericValues.base_amount,
-      start_time: new Date(numericValues.start_time * 1000),
-      end_time: new Date(numericValues.end_time * 1000),
-      winning_amount: numericValues.winning_amount,
-      category: "Versus", // Fixed category for Versus schema
-      active: true,
+      entry_fee: processedValues.entry_fee,
+      base_amount: processedValues.base_amount,
+      start_time: startDate,
+      end_time: endDate,
+      winning_amount: processedValues.winning_amount,
+      participants: [player._id], // Storing Player reference
       current_players: 1,
-      participants: [player._id],
-      payout_claimed: false,
+      active: true,
     });
 
-    // Format response
+    // Format response with human-readable values
     res.status(201).json({
       success: true,
-      message: "Versus party created successfully",
-      versus_id: newVersus.id,
-      enrolled_player: authority,
+      versus_id: versusId,
+      game_code: versusId.toString().padStart(6, "0"),
       details: {
-        entry_fee: `${numericValues.entry_fee / 1e9} SOL`,
-        prize_pool: `${numericValues.base_amount / 1e9} SOL`,
-        start_time: newVersus.start_time.toISOString(),
-        end_time: newVersus.end_time.toISOString(),
-        slots: `${1}/${2}`, // Current players/Max players
+        entry_fee: `${processedValues.entry_fee.toFixed(9)} SOL`,
+        base_amount: `${processedValues.base_amount.toFixed(6)} USDT`,
+        prize_pool: `${processedValues.winning_amount.toFixed(9)} SOL`,
+        timeframe: {
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+        },
+        players: `${1}/2`,
       },
     });
   } catch (error) {
-    console.error("Versus party creation error:", error);
+    console.error("Versus creation error:", error);
 
-    // Handle duplicate versus ID
+    const response = {
+      error: "Failed to create versus game",
+      code: "CREATION_FAILED",
+    };
+
     if (error.code === 11000) {
-      return res.status(409).json({
-        error: "Versus ID conflict - please retry",
-        code: "ID_CONFLICT",
-      });
+      response.error = "Duplicate game ID - please try again";
+      response.code = "ID_CONFLICT";
     }
 
-    // General error handling
-    res.status(500).json({
-      error: "Versus party creation failed",
-      systemMessage: error.message,
-      code: "INTERNAL_ERROR",
-    });
+    if (process.env.NODE_ENV === "development") {
+      response.debug = error.message;
+    }
+
+    res.status(error.code === 11000 ? 409 : 500).json(response);
   }
 };
