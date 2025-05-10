@@ -11,7 +11,6 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
-
 export default function VersusPage() {
   const { connected, publicKey } = useWallet();
   const [playerData, setPlayerData] = useState<any>(null);
@@ -72,7 +71,7 @@ export default function VersusPage() {
         toast.success("Successfully joined versus game!");
 
         // Redirect to snapshot page
-        router.push(`/snapshot/${joinCompetitionId}`); 
+        router.push(`/snapshot/${joinCompetitionId}`);
 
         // Refresh game list
         if (playerData) {
@@ -89,6 +88,10 @@ export default function VersusPage() {
           break;
         case "ALREADY_JOINED":
           setJoinError("You've already joined this game");
+          // Add redirect for already joined players
+          toast.info("Redirecting to game snapshot...");
+          setJoinModalOpen(false);
+          router.push(`/snapshot/${joinCompetitionId}`);
           break;
         case "GAME_STARTED":
           setJoinError("Game has already started");
@@ -97,12 +100,14 @@ export default function VersusPage() {
           setJoinError(errorMessage || "Failed to join game");
       }
 
-      toast.error(errorMessage || "Join failed");
+      // Only show error toast for errors other than ALREADY_JOINED
+      if (errorCode !== "ALREADY_JOINED") {
+        toast.error(errorMessage || "Join failed");
+      }
     } finally {
       setJoining(false);
     }
   };
-
 
   return (
     <main className="min-h-screen relative overflow-hidden bg-black">

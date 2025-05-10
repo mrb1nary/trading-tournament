@@ -10,22 +10,26 @@ interface Competition {
   start_time: string; // ISO date string
   end_time: string; // ISO date string
   winning_amount: number;
-  category: "TwoPlayers" | "SixPlayers" | "TwelvePlayers" | "TwentyFivePlayers";
+  category:
+    | "TwoPlayers"
+    | "SixPlayers"
+    | "TwelvePlayers"
+    | "TwentyFivePlayers"
+    | "Versus";
   winner: string | null; // Player ID
   payout_claimed: boolean;
   active: boolean;
   participants: string[]; // Array of Player IDs
 }
 
-
 interface GameListProps {
   games: Competition[];
   playerData?: {
     _id: string;
+    code?: string; // Optional code property inside playerData
     [key: string]: unknown;
   };
 }
-
 
 const GameList: React.FC<GameListProps> = ({ games, playerData }) => {
   // Function to calculate time left
@@ -48,13 +52,30 @@ const GameList: React.FC<GameListProps> = ({ games, playerData }) => {
 
   // Function to format SOL amounts
   const formatSol = (lamports: number) =>
-    `sol ${(lamports / 1000000).toFixed(2)}`;
+    `SOL ${(lamports / 1000000).toFixed(2)}`;
+
+  // Function to format USDT amounts
+  const formatUsdt = (amount: number) => `USDT ${amount.toFixed(2)}`;
+
+  console.log(playerData);
 
   return (
     <div className="py-8 w-full mx-auto my-32">
-      <h2 className="text-4xl font-semibold mb-6 flex items-center">
-        My Games <span className="text-gray-500 ml-2">({games.length})</span>
-      </h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-4xl font-semibold flex items-center">
+          My Games <span className="text-gray-500 ml-2">({games.length})</span>
+        </h2>
+
+        {/* Display code if it exists inside playerData */}
+        {playerData?.code && (
+          <div className="bg-[#262D31] rounded-xl p-4 flex flex-col items-center">
+            <span className="text-gray-400 text-sm mb-1">Latest Game Code</span>
+            <span className="text-white font-bold text-xl">
+              {playerData.code}
+            </span>
+          </div>
+        )}
+      </div>
 
       <div className="bg-[#1A2023] rounded-4xl overflow-hidden z-10 relative">
         <table className="w-full">
@@ -62,6 +83,9 @@ const GameList: React.FC<GameListProps> = ({ games, playerData }) => {
             <tr className="border-b border-gray-800">
               <th className="py-4 px-6 text-left text-gray-500 font-normal">
                 #
+              </th>
+              <th className="py-4 px-6 text-left text-gray-500 font-normal">
+                Game Code
               </th>
               <th className="py-4 px-6 text-left text-gray-500 font-normal">
                 Type
@@ -88,6 +112,9 @@ const GameList: React.FC<GameListProps> = ({ games, playerData }) => {
                   className="border-b border-gray-800 hover:bg-[#262D31] cursor-pointer"
                 >
                   <td className="py-4 px-6 text-gray-400">{index + 1}</td>
+                  <td className="py-4 px-6 text-green-400 font-medium">
+                    {game.id}
+                  </td>
                   <td className="py-4 px-6 text-gray-400">{game.category}</td>
                   <td className="py-4 px-6 text-[#00FF00]">
                     {game.winner
@@ -100,7 +127,7 @@ const GameList: React.FC<GameListProps> = ({ games, playerData }) => {
                     {formatSol(game.winning_amount)}
                   </td>
                   <td className="py-4 px-6 text-gray-400">
-                    {formatSol(game.base_amount)}
+                    {formatUsdt(game.base_amount)}
                   </td>
                   <td className="py-4 px-6 text-gray-400">
                     {getTimeLeft(game.end_time)}
@@ -109,7 +136,7 @@ const GameList: React.FC<GameListProps> = ({ games, playerData }) => {
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="py-12 text-center">
+                <td colSpan={7} className="py-12 text-center">
                   <div className="flex flex-col items-center justify-center gap-4">
                     <p className="text-xl text-gray-300">
                       You are yet to play your first game. Good luck!

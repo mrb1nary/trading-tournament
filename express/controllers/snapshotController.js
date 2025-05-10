@@ -3,28 +3,49 @@ import axios from "axios";
 import { UserAssetSnapshot } from "../models/userSnapshotModel.js";
 import { Competition } from "../models/competitionModel.js";
 import { Player } from "../models/playerModel.js";
+import { Versus } from "../models/versusModel.js"; // Added import for Versus model
 
 dotenv.config();
 
 export const snapshotController = async (req, res) => {
   try {
-    const { competition_id, wallet_address } = req.body;
+    const { competition_id, versus_id, wallet_address } = req.body;
 
-    if (!competition_id || !wallet_address) {
+    // Either competition_id or versus_id is required
+    if ((!competition_id && !versus_id) || !wallet_address) {
       return res.status(400).json({
         success: false,
         message:
-          "Missing required parameters: competition_id and wallet_address",
+          "Missing required parameters: either competition_id or versus_id, and wallet_address",
       });
     }
 
-    // Check if competition exists
-    const competition = await Competition.findOne({ id: competition_id });
-    if (!competition) {
-      return res.status(404).json({
-        success: false,
-        message: "Competition not found",
-      });
+    // Variables to store game details
+    let gameId, gameType, game;
+
+    // Handle versus game
+    if (versus_id) {
+      game = await Versus.findOne({ id: versus_id });
+      if (!game) {
+        return res.status(404).json({
+          success: false,
+          message: "Versus game not found",
+        });
+      }
+      gameId = game._id;
+      gameType = "versus";
+    }
+    // Handle competition
+    else if (competition_id) {
+      game = await Competition.findOne({ id: competition_id });
+      if (!game) {
+        return res.status(404).json({
+          success: false,
+          message: "Competition not found",
+        });
+      }
+      gameId = game._id;
+      gameType = "competition";
     }
 
     // Check if wallet address is registered on the platform
@@ -131,12 +152,19 @@ export const snapshotController = async (req, res) => {
       total_portfolio_value: totalValue,
     };
 
-    // Check if a snapshot already exists for this wallet and competition
-    const existingSnapshot = await UserAssetSnapshot.findOne({
-      competition: competition._id,
-      player: user._id,
+    // Build query for existing snapshot
+    const query = {
       wallet_address: wallet_address,
-    });
+      player: user._id,
+    };
+    if (gameType === "competition") {
+      query.competition = gameId;
+    } else if (gameType === "versus") {
+      query.versus = gameId;
+    }
+
+    // Check if a snapshot already exists for this wallet and game (competition or versus)
+    const existingSnapshot = await UserAssetSnapshot.findOne(query);
 
     let savedSnapshot;
 
@@ -149,7 +177,6 @@ export const snapshotController = async (req, res) => {
     } else {
       // Create new snapshot document with startSnapshot only
       const snapshotData = {
-        competition: competition._id,
         player: user._id,
         wallet_address: wallet_address,
         startSnapshot: currentSnapshot,
@@ -159,6 +186,13 @@ export const snapshotController = async (req, res) => {
           total_portfolio_value: 0,
         },
       };
+
+      // Add the appropriate game field based on the type
+      if (gameType === "competition") {
+        snapshotData.competition = gameId;
+      } else if (gameType === "versus") {
+        snapshotData.versus = gameId;
+      }
 
       const snapshot = new UserAssetSnapshot(snapshotData);
       savedSnapshot = await snapshot.save();
@@ -172,6 +206,8 @@ export const snapshotController = async (req, res) => {
         : "Start snapshot created successfully",
       data: {
         snapshot_id: savedSnapshot._id,
+        game_type: gameType,
+        game_id: gameType === "competition" ? competition_id : versus_id,
         snapshot_type: "start",
         timestamp: savedSnapshot.startSnapshot.snapshot_timestamp,
         asset_count: savedSnapshot.startSnapshot.assets.length,

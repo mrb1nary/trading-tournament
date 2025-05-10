@@ -1,8 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import axios from "axios";
-
 import { useWallet } from "@solana/wallet-adapter-react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -37,23 +37,107 @@ export default function SnapshotComponent() {
   const [playerAddresses, setPlayerAddresses] = useState<string[]>([]);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
 
-  // Fetch competition data
+  // Fetch competition or versus data
   useEffect(() => {
     if (!competitionId || !apiUrl) return;
 
     const fetchCompetition = async () => {
       try {
+        // Try to fetch as competition first
         const response = await axios.get<{ competitions: Competition[] }>(
           `${apiUrl}/fetchCompetition/${competitionId}`
         );
-        setCompetition(response.data?.competitions?.[0] || null);
+        if (response.data?.competitions?.length > 0) {
+          setCompetition(response.data.competitions[0]);
+        } else {
+          // No competition found, try versus fallback
+          await tryFetchVersus();
+        }
       } catch (error) {
-        console.error("Error fetching competition:", error);
-        if (axios.isAxiosError(error)) {
+        // If 4xx error, fallback to versus
+        if (
+          axios.isAxiosError(error) &&
+          error.response &&
+          error.response.status >= 400 &&
+          error.response.status < 500
+        ) {
+          await tryFetchVersus();
+        } else {
           toast.error(
-            error.response?.data?.message || "Failed to fetch competition"
+            axios.isAxiosError(error)
+              ? error.response?.data?.message || "Failed to fetch competition"
+              : "Failed to fetch competition"
           );
         }
+      }
+    };
+
+    const tryFetchVersus = async () => {
+      try {
+        const versusResponse = await axios.post(`${apiUrl}/fetchVersus`, {
+          versus_id: competitionId,
+        });
+        const data = versusResponse.data?.data?.[0];
+        if (data) {
+          // Map versus data to Competition interface
+          // Handle date issues properly
+          const now = new Date();
+
+          // Check if dates are valid
+          const startDate = new Date(data.start_time);
+          const endDate = new Date(data.end_time);
+
+          // If dates are from 1970 (epoch time issue) or invalid, create reasonable defaults
+          let start_time, end_time;
+
+          if (startDate.getFullYear() === 1970 || isNaN(startDate.getTime())) {
+            // Set start time to now
+            start_time = now.toISOString();
+          } else {
+            start_time = data.start_time;
+          }
+
+          if (endDate.getFullYear() === 1970 || isNaN(endDate.getTime())) {
+            // Set end time to 3 hours from now
+            const futureDate = new Date(now);
+            futureDate.setHours(futureDate.getHours() + 3);
+            end_time = futureDate.toISOString();
+          } else {
+            end_time = data.end_time;
+          }
+
+          // Ensure end time is after start time
+          if (new Date(end_time) <= new Date(start_time)) {
+            const startDateObj = new Date(start_time);
+            const newEndDate = new Date(startDateObj);
+            newEndDate.setHours(startDateObj.getHours() + 3);
+            end_time = newEndDate.toISOString();
+          }
+
+          console.log("Fixed start time:", start_time);
+          console.log("Fixed end time:", end_time);
+
+          setCompetition({
+            id: data.versus_id,
+            category: "Versus",
+            start_time: start_time,
+            end_time: end_time,
+            max_players: data.participants.length,
+            current_players: data.participants.length,
+            participants: data.participants.map((p: any) => p.wallet),
+            entry_fee: data.entry_fee,
+            base_amount: 0, // Versus doesn't have this, set to 0 or handle as needed
+            winning_amount: data.prize_pool,
+            authority: "", // Versus doesn't have this, set to empty or handle as needed
+          });
+        } else {
+          setCompetition(null);
+          toast.error("Competition or Versus game not found");
+        }
+      } catch (versusError) {
+        setCompetition(null);
+        toast.error("Failed to fetch competition details");
+        console.log(versusError);
       }
     };
 
@@ -99,14 +183,19 @@ export default function SnapshotComponent() {
         return;
       }
 
-      const response = await axios.post(
-        `${apiUrl}/snapshot`,
-        {
-          competition_id: competitionId,
-          wallet_address: wallet.publicKey.toString(),
-        },
-        { headers: { "Content-Type": "application/json" } }
-      );
+      // Use correct key for snapshot endpoint
+      const reqBody: any = {
+        wallet_address: wallet.publicKey.toString(),
+      };
+      if (competition?.category === "Versus") {
+        reqBody.versus_id = competitionId;
+      } else {
+        reqBody.competition_id = competitionId;
+      }
+
+      const response = await axios.post(`${apiUrl}/snapshot`, reqBody, {
+        headers: { "Content-Type": "application/json" },
+      });
 
       console.log("Snapshot successful:", response.data);
       toast.success("Portfolio snapshot captured!");
@@ -130,6 +219,11 @@ export default function SnapshotComponent() {
     const start = new Date(competition.start_time);
     const end = new Date(competition.end_time);
 
+    // Debug logging for date issues
+    console.log("Current time:", now);
+    console.log("Start time:", start, "Raw:", competition.start_time);
+    console.log("End time:", end, "Raw:", competition.end_time);
+
     if (now > end) return { status: "finished" };
     if (now < start) {
       const diffMs = start.getTime() - now.getTime();
@@ -147,20 +241,56 @@ export default function SnapshotComponent() {
     return { status: "started" };
   };
 
-  // Helper functions with proper null checks
+  // Helper functions with proper null checks and improved date formatting
   const formatSol = (lamports: number | undefined) =>
-    lamports ? `${(lamports / 1e9).toFixed(3)} SOL` : "0.000 SOL";
+    lamports ? `${lamports.toFixed(3)} SOL` : "0.000 SOL";
 
   const formatUSDT = (amount: number | undefined) =>
     amount ? `${amount} USDT` : "0 USDT";
 
-  const formatDate = (date: string | undefined) =>
-    date ? new Date(date).toLocaleString() : "N/A";
+  const formatDate = (date: string | undefined) => {
+    if (!date) return "N/A";
+    const parsedDate = new Date(date);
+
+    // Check if date is valid and not from 1970 (epoch time issue)
+    if (isNaN(parsedDate.getTime()) || parsedDate.getFullYear() === 1970) {
+      return "Date pending";
+    }
+
+    // Format date with timezone
+    return parsedDate.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZoneName: "short",
+    });
+  };
 
   const getDuration = (start: string | undefined, end: string | undefined) => {
     if (!start || !end) return "N/A";
-    const ms = new Date(end).getTime() - new Date(start).getTime();
-    return ms > 0 ? `${Math.floor(ms / (1000 * 60 * 60))} hour(s)` : "N/A";
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    // Check for invalid dates or 1970 dates (epoch time issue)
+    if (
+      isNaN(startDate.getTime()) ||
+      isNaN(endDate.getTime()) ||
+      startDate.getFullYear() === 1970 ||
+      endDate.getFullYear() === 1970
+    ) {
+      return "Duration pending";
+    }
+
+    const ms = endDate.getTime() - startDate.getTime();
+    if (ms <= 0) return "Invalid duration";
+
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+
+    return `${hours}h ${minutes}m`;
   };
 
   const compStatus = getCompetitionStatus();

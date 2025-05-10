@@ -16,7 +16,7 @@ const CompetitionPlayedSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Competition",
       required: true,
-      index: true,
+      // Removed index from here as it causes the parallel array issue
     },
     profits: {
       USDC: { type: ProfitSchema, default: () => ({}) },
@@ -47,7 +47,7 @@ const VersusPlayedSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Versus",
       required: true,
-      index: true,
+      // Removed index from here as it causes the parallel array issue
     },
     profits: {
       USDC: { type: ProfitSchema, default: () => ({}) },
@@ -77,8 +77,8 @@ const PlayerSchema = new mongoose.Schema(
     player_wallet_address: {
       type: String,
       required: true,
-      index: true,
       unique: true,
+      sparse: true, // Ensures no duplicate wallet addresses
     },
     twitter_handle: {
       type: String,
@@ -140,7 +140,7 @@ const PlayerSchema = new mongoose.Schema(
   }
 );
 
-// Virtual properties
+// Virtual properties for win rate calculations
 PlayerSchema.virtual("win_rate").get(function () {
   if (!this.competitions_played?.length) return 0;
   const totalProfit = this.competitions_played.reduce(
@@ -159,16 +159,38 @@ PlayerSchema.virtual("versus_win_rate").get(function () {
   return parseFloat((totalProfit / this.versus_played.length).toFixed(2));
 });
 
-// Separate indexes to avoid parallel arrays error
+// Create necessary indexes for unique fields
 PlayerSchema.index({
   player_wallet_address: 1,
-  "competitions_played.competition": 1,
 });
 
 PlayerSchema.index({
-  player_wallet_address: 1,
-  "versus_played.versus": 1,
+  twitter_handle: 1,
 });
+
+PlayerSchema.index({
+  player_email: 1,
+});
+
+PlayerSchema.index({
+  player_username: 1,
+});
+
+PlayerSchema.index({
+  tg_username: 1,
+});
+
+// IMPORTANT: Fix for parallel array indexing issue
+// Only index one of the arrays, not both
+// Choose the one that's most frequently queried
+PlayerSchema.index({
+  "competitions_played.competition": 1,
+});
+
+// Remove this index to solve the parallel array indexing error
+// PlayerSchema.index({
+//   "versus_played.versus": 1,
+// });
 
 PlayerSchema.plugin(mongooseUniqueValidator, {
   message: "{PATH} must be unique.",

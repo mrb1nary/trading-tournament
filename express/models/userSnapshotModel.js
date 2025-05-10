@@ -38,10 +38,18 @@ const SnapshotSchema = new mongoose.Schema({
 
 const UserSnapshotSchema = new mongoose.Schema(
   {
+    // Modified: Made competition optional
     competition: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Competition",
-      required: true,
+      required: false, // Changed from true to false
+      index: true,
+    },
+    // Added: Versus reference
+    versus: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Versus",
+      required: false,
       index: true,
     },
     player: {
@@ -72,13 +80,43 @@ const UserSnapshotSchema = new mongoose.Schema(
   }
 );
 
-// Compound index for faster lookups
+// Added validation to ensure either competition or versus is provided
+UserSnapshotSchema.pre("validate", function (next) {
+  if (!this.competition && !this.versus) {
+    this.invalidate(
+      "competition",
+      "Either competition or versus must be provided"
+    );
+    this.invalidate("versus", "Either competition or versus must be provided");
+  }
+  next();
+});
+
+// Modified: Compound index for competition lookups
 UserSnapshotSchema.index({
   competition: 1,
   player: 1,
   "startSnapshot.snapshot_timestamp": 1,
   "endSnapshot.snapshot_timestamp": -1,
 });
+
+// Added: Compound index for versus lookups
+UserSnapshotSchema.index({
+  versus: 1,
+  player: 1,
+  "startSnapshot.snapshot_timestamp": 1,
+  "endSnapshot.snapshot_timestamp": -1,
+});
+
+// Added: Ensure uniqueness for player-competition and player-versus combinations
+UserSnapshotSchema.index(
+  { player: 1, competition: 1 },
+  { unique: true, sparse: true }
+);
+UserSnapshotSchema.index(
+  { player: 1, versus: 1 },
+  { unique: true, sparse: true }
+);
 
 export const UserAssetSnapshot = mongoose.model(
   "UserAssetSnapshot",
