@@ -21,7 +21,9 @@ const Navbar: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
 
-  const openRulesModal = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+  const openRulesModal = (
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>
+  ) => {
     e.preventDefault();
     setIsRulesModalOpen(true);
   };
@@ -30,7 +32,6 @@ const Navbar: React.FC = () => {
     setIsRulesModalOpen(false);
   };
 
-  // Only render component after client-side hydration is complete
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -43,7 +44,6 @@ const Navbar: React.FC = () => {
     }
   }, [connected, publicKey]);
 
-  // Focus the search input when it opens
   useEffect(() => {
     if (isSearchOpen && searchInputRef.current) {
       searchInputRef.current.focus();
@@ -61,14 +61,10 @@ const Navbar: React.FC = () => {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Search query:", searchQuery);
-    // Keep this line if you want the search box to remain open after submission
-    // or remove it if you want the search box to close after submission
-    // setIsSearchOpen(false);
   };
 
-  // Return null during server-side rendering or initial client render
   if (!mounted) {
-    return null; // This prevents any rendering until client-side hydration is complete
+    return null;
   }
 
   return (
@@ -114,7 +110,7 @@ const Navbar: React.FC = () => {
               My games
             </Link>
 
-            {/* Search Button and Expandable Search Box */}
+            {/* Search */}
             <div className="relative flex items-center">
               <form onSubmit={handleSearchSubmit} className="flex items-center">
                 <input
@@ -138,9 +134,7 @@ const Navbar: React.FC = () => {
 
         {/* Right Section */}
         <div className="relative hidden md:block">
-          <WalletMultiButton className="wallet-adapter-button">
-            {connected ? "Connected" : "Connect Wallet"}
-          </WalletMultiButton>
+          <WalletMultiButton className="wallet-adapter-button" />
         </div>
 
         {/* Hamburger Menu Button */}
@@ -219,6 +213,11 @@ const Navbar: React.FC = () => {
                 <MagnifyingGlassIcon className="h-5 w-5 text-gray-500" />
               </button>
             </form>
+
+            {/* Wallet Connect for Mobile */}
+            <div className="mt-4 w-full">
+              <WalletMultiButton className="wallet-adapter-button w-full" />
+            </div>
           </div>
         </div>
       </nav>
