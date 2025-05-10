@@ -180,6 +180,7 @@ export default function VersusPage() {
               background: "linear-gradient(145deg, #1E2427 0%, #121518 100%)",
               boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
             }}
+            onClick={() => router.push("/versus/MyGames")} 
           >
             {/* ...icon and tooltip... */}
             <div className="flex items-center justify-center h-full">
