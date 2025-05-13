@@ -1,17 +1,29 @@
 import dotenv from "dotenv";
 import axios from "axios";
+import mongoose from "mongoose";
 import { UserAssetSnapshot } from "../models/userSnapshotModel.js";
 import { Competition } from "../models/competitionModel.js";
 import { Player } from "../models/playerModel.js";
-import { Versus } from "../models/versusModel.js"; // Added import for Versus model
+import { Versus } from "../models/versusModel.js";
 
 dotenv.config();
+
+// Ensure sparse indexes are created once at startup
+UserAssetSnapshot.collection.createIndex(
+  { player: 1, competition: 1 },
+  { unique: true, sparse: true }
+);
+UserAssetSnapshot.collection.createIndex(
+  { player: 1, versus: 1 },
+  { unique: true, sparse: true }
+);
 
 export const snapshotController = async (req, res) => {
   try {
     const { competition_id, versus_id, wallet_address } = req.body;
 
-    // Either competition_id or versus_id is required
+    console.log("[INPUT]", { competition_id, versus_id, wallet_address });
+
     if ((!competition_id && !versus_id) || !wallet_address) {
       return res.status(400).json({
         success: false,
@@ -20,35 +32,29 @@ export const snapshotController = async (req, res) => {
       });
     }
 
-    // Variables to store game details
-    let gameId, gameType, game;
-
-    // Handle versus game
+    let game, gameId, gameType;
     if (versus_id) {
       game = await Versus.findOne({ id: versus_id });
       if (!game) {
-        return res.status(404).json({
-          success: false,
-          message: "Versus game not found",
-        });
+        return res
+          .status(404)
+          .json({ success: false, message: "Versus game not found" });
       }
       gameId = game._id;
       gameType = "versus";
-    }
-    // Handle competition
-    else if (competition_id) {
+    } else if (competition_id) {
       game = await Competition.findOne({ id: competition_id });
       if (!game) {
-        return res.status(404).json({
-          success: false,
-          message: "Competition not found",
-        });
+        return res
+          .status(404)
+          .json({ success: false, message: "Competition not found" });
       }
       gameId = game._id;
       gameType = "competition";
     }
 
-    // Check if wallet address is registered on the platform
+    console.log(`[GAME] Resolved ${gameType} game with ID ${gameId}`);
+
     const user = await Player.findOne({
       player_wallet_address: wallet_address,
     });
@@ -59,22 +65,18 @@ export const snapshotController = async (req, res) => {
       });
     }
 
-    // Function to fetch data with retry logic using axios
+    console.log(`[PLAYER] Found player ID ${user._id}`);
+
     const fetchWithRetry = async (data, retries = 3, delay = 1000) => {
       try {
         const response = await axios.post(
           `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`,
           data,
-          {
-            headers: { "Content-Type": "application/json" },
-          }
+          { headers: { "Content-Type": "application/json" } }
         );
         return response.data;
       } catch (error) {
         if (retries > 0) {
-          console.log(
-            `Request failed, retrying in ${delay}ms... (${retries} retries left)`
-          );
           await new Promise((resolve) => setTimeout(resolve, delay));
           return fetchWithRetry(data, retries - 1, delay * 2);
         }
@@ -82,17 +84,14 @@ export const snapshotController = async (req, res) => {
       }
     };
 
-    // Get SOL balance
     const solBalanceData = await fetchWithRetry({
       jsonrpc: "2.0",
       id: "sol-balance",
       method: "getBalance",
       params: [wallet_address],
     });
+    const solBalance = solBalanceData.result.value / 1_000_000_000;
 
-    const solBalance = solBalanceData.result.value / 1000000000; // Convert lamports to SOL
-
-    // Get token assets
     const assetData = await fetchWithRetry({
       jsonrpc: "2.0",
       id: "get-assets",
@@ -104,118 +103,121 @@ export const snapshotController = async (req, res) => {
       },
     });
 
-    // Format assets for our schema
-    const assets = [];
+    const assets = [
+      {
+        mint_address: "So11111111111111111111111111111111111111112",
+        symbol: "SOL",
+        balance: solBalance,
+        usd_value: solBalance * 143.36,
+      },
+    ];
 
-    // Add SOL balance
-    assets.push({
-      mint_address: "So11111111111111111111111111111111111111112",
-      symbol: "SOL",
-      balance: solBalance,
-      usd_value: solBalance * 143.36,
-    });
-
-    // Add token assets
-    if (assetData.result && assetData.result.items) {
+    if (assetData.result?.items) {
       assetData.result.items.forEach((asset) => {
-        let usdValue = 0;
         const symbol =
           asset.content?.metadata?.symbol || asset.symbol || "UNKNOWN";
         const balance = asset.tokenAmount || asset.amount || 1;
-
-        if (symbol === "USDC" || symbol === "USDT") {
-          usdValue = parseFloat(balance);
-        } else {
-          usdValue = parseFloat(balance) * 1.0;
-        }
+        let usdValue = ["USDC", "USDT"].includes(symbol)
+          ? parseFloat(balance)
+          : parseFloat(balance) * 1.0;
 
         assets.push({
           mint_address: asset.id,
-          symbol: symbol,
-          balance: balance,
+          symbol,
+          balance,
           usd_value: usdValue,
         });
       });
     }
 
-    // Calculate total portfolio value
     const totalValue = assets.reduce(
-      (sum, asset) =>
-        sum + (isNaN(asset.usd_value) ? 0 : Number(asset.usd_value)),
+      (sum, asset) => sum + (isNaN(asset.usd_value) ? 0 : asset.usd_value),
       0
     );
 
-    // Create snapshot object
     const currentSnapshot = {
       snapshot_timestamp: new Date(),
-      assets: assets,
+      assets,
       total_portfolio_value: totalValue,
     };
 
-    // Build query for existing snapshot
-    const query = {
-      wallet_address: wallet_address,
-      player: user._id,
-    };
-    if (gameType === "competition") {
-      query.competition = gameId;
-    } else if (gameType === "versus") {
-      query.versus = gameId;
-    }
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    // Check if a snapshot already exists for this wallet and game (competition or versus)
-    const existingSnapshot = await UserAssetSnapshot.findOne(query);
-
-    let savedSnapshot;
-
-    if (existingSnapshot) {
-      // Update existing snapshot with startSnapshot only
-      existingSnapshot.startSnapshot = currentSnapshot;
-
-      savedSnapshot = await existingSnapshot.save();
-      console.log(`Updated start snapshot with ID: ${savedSnapshot._id}`);
-    } else {
-      // Create new snapshot document with startSnapshot only
-      const snapshotData = {
+    try {
+      const specificQuery = {
         player: user._id,
-        wallet_address: wallet_address,
-        startSnapshot: currentSnapshot,
-        endSnapshot: {
-          snapshot_timestamp: new Date(),
-          assets: [],
-          total_portfolio_value: 0,
-        },
+        wallet_address,
       };
 
-      // Add the appropriate game field based on the type
       if (gameType === "competition") {
-        snapshotData.competition = gameId;
+        specificQuery.competition = gameId;
       } else if (gameType === "versus") {
-        snapshotData.versus = gameId;
+        specificQuery.versus = gameId;
       }
 
-      const snapshot = new UserAssetSnapshot(snapshotData);
-      savedSnapshot = await snapshot.save();
-      console.log(`Created new start snapshot with ID: ${savedSnapshot._id}`);
-    }
+      console.log("[QUERY] Finding existing snapshot with:", specificQuery);
 
-    return res.status(200).json({
-      success: true,
-      message: existingSnapshot
-        ? "Start snapshot updated successfully"
-        : "Start snapshot created successfully",
-      data: {
-        snapshot_id: savedSnapshot._id,
-        game_type: gameType,
-        game_id: gameType === "competition" ? competition_id : versus_id,
-        snapshot_type: "start",
-        timestamp: savedSnapshot.startSnapshot.snapshot_timestamp,
-        asset_count: savedSnapshot.startSnapshot.assets.length,
-        total_value: savedSnapshot.startSnapshot.total_portfolio_value,
-      },
-    });
+      let existingSnapshot = await UserAssetSnapshot.findOne(
+        specificQuery
+      ).session(session);
+
+      let savedSnapshot;
+
+      if (existingSnapshot) {
+        console.log("[UPDATE] Existing snapshot found:", existingSnapshot._id);
+        existingSnapshot.startSnapshot = currentSnapshot;
+        savedSnapshot = await existingSnapshot.save({ session });
+      } else {
+        const snapshotData = {
+          player: user._id,
+          wallet_address,
+          startSnapshot: currentSnapshot,
+          endSnapshot: {
+            snapshot_timestamp: new Date(),
+            assets: [],
+            total_portfolio_value: 0,
+          },
+        };
+
+        // Only assign one of these fields; skip null assignment
+        if (gameType === "competition") {
+          snapshotData.competition = gameId;
+        } else if (gameType === "versus") {
+          snapshotData.versus = gameId;
+        }
+
+        console.log("[INSERT] Snapshot data to be saved:", snapshotData);
+
+        const snapshot = new UserAssetSnapshot(snapshotData);
+        savedSnapshot = await snapshot.save({ session });
+      }
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return res.status(200).json({
+        success: true,
+        message: existingSnapshot
+          ? "Start snapshot updated successfully"
+          : "Start snapshot created successfully",
+        data: {
+          snapshot_id: savedSnapshot._id,
+          game_type: gameType,
+          game_id: gameType === "competition" ? competition_id : versus_id,
+          snapshot_type: "start",
+          timestamp: savedSnapshot.startSnapshot.snapshot_timestamp,
+          asset_count: savedSnapshot.startSnapshot.assets.length,
+          total_value: savedSnapshot.startSnapshot.total_portfolio_value,
+        },
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
   } catch (error) {
-    console.error("Snapshot failed:", error.message);
+    console.error("❌ Snapshot failed:", error.message);
     return res.status(500).json({
       success: false,
       message: "Failed to create wallet snapshot",

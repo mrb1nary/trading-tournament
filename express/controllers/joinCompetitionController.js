@@ -35,7 +35,7 @@ export const joinCompetitionController = async (req, res) => {
     if (now >= competition.start_time) {
       return res.status(400).json({
         error: "Competition has already started",
-        code: "COMPETITION_STARTED",
+        code: "COMPETITION_ALREADY_STARTED",
       });
     }
 
@@ -99,7 +99,7 @@ export const joinCompetitionController = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Join competition error:", error);
+    console.error("Join competition error:", error.stack || error.message);
     return res.status(500).json({
       error: "Internal server error",
       code: "SERVER_ERROR",

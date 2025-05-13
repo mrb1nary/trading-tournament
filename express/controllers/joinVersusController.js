@@ -22,19 +22,15 @@ export const joinVersusController = async (req, res) => {
       });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(versus_id)) {
-      console.log("Invalid versus ID format");
-      return res.status(400).json({
-        success: false,
-        error: "Invalid Versus ID",
-        code: "INVALID_ID",
-      });
-    }
-
-    // ---------------------------------------------------------------------------
-    // IMPORTANT FIX: More robust player lookup with case-insensitive matching
-    // and handling any whitespace issues
-    // ---------------------------------------------------------------------------
+    // Remove the ObjectId validation since versus_id is a numeric value
+    // if (!mongoose.Types.ObjectId.isValid(versus_id)) {
+    //   console.log("Invalid versus ID format");
+    //   return res.status(400).json({
+    //     success: false,
+    //     error: "Invalid Versus ID",
+    //     code: "INVALID_ID",
+    //   });
+    // }
 
     // Clean the wallet address (trim whitespace)
     const cleanWalletAddress = wallet_address.trim();
@@ -46,15 +42,12 @@ export const joinVersusController = async (req, res) => {
       cleanWalletAddress
     );
 
-    
     let player = await Player.findOne({
       player_wallet_address: cleanWalletAddress,
     })
       .select("_id versus_played")
       .session(session);
 
-
-    
     if (!player) {
       console.log("Player not found with regex either, looking at all players");
       const allPlayers = await Player.find({})
@@ -65,8 +58,6 @@ export const joinVersusController = async (req, res) => {
         "Sample of players in database:",
         allPlayers.map((p) => p.player_wallet_address)
       );
-
-
     }
 
     console.log(
@@ -83,9 +74,14 @@ export const joinVersusController = async (req, res) => {
       });
     }
 
+    // Convert versus_id to a number if it's a string
+    const numericVersusId =
+      typeof versus_id === "string" ? parseInt(versus_id, 10) : versus_id;
 
-    console.log("Looking for versus game with ID:", versus_id);
-    const versusGame = await Versus.findOne({ id: versus_id }).session(session);
+    console.log("Looking for versus game with ID:", numericVersusId);
+    const versusGame = await Versus.findOne({ id: numericVersusId }).session(
+      session
+    );
     console.log(
       "Versus game query result:",
       versusGame ? `Found (ID: ${versusGame._id})` : "Not found"

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import React, { useEffect, useState } from "react";
@@ -26,6 +27,12 @@ interface CompetitionStatus {
   countdown?: string;
 }
 
+type PlayerRegistrationStatus =
+  | "loading"
+  | "registered"
+  | "not_registered"
+  | "party_full";
+
 export default function SnapshotComponent() {
   const params = useParams();
   const competitionId = params?.id as string;
@@ -36,6 +43,8 @@ export default function SnapshotComponent() {
   const [activeTab, setActiveTab] = useState<"summary" | "players">("summary");
   const [playerAddresses, setPlayerAddresses] = useState<string[]>([]);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
+  const [playerRegistrationStatus, setPlayerRegistrationStatus] =
+    useState<PlayerRegistrationStatus>("loading");
 
   // Fetch competition or versus data
   useEffect(() => {
@@ -54,7 +63,6 @@ export default function SnapshotComponent() {
           await tryFetchVersus();
         }
       } catch (error) {
-        // If 4xx error, fallback to versus
         if (
           axios.isAxiosError(error) &&
           error.response &&
@@ -79,56 +87,40 @@ export default function SnapshotComponent() {
         });
         const data = versusResponse.data?.data?.[0];
         if (data) {
-          // Map versus data to Competition interface
-          // Handle date issues properly
           const now = new Date();
-
-          // Check if dates are valid
           const startDate = new Date(data.start_time);
           const endDate = new Date(data.end_time);
-
-          // If dates are from 1970 (epoch time issue) or invalid, create reasonable defaults
           let start_time, end_time;
-
           if (startDate.getFullYear() === 1970 || isNaN(startDate.getTime())) {
-            // Set start time to now
             start_time = now.toISOString();
           } else {
             start_time = data.start_time;
           }
-
           if (endDate.getFullYear() === 1970 || isNaN(endDate.getTime())) {
-            // Set end time to 3 hours from now
             const futureDate = new Date(now);
             futureDate.setHours(futureDate.getHours() + 3);
             end_time = futureDate.toISOString();
           } else {
             end_time = data.end_time;
           }
-
-          // Ensure end time is after start time
           if (new Date(end_time) <= new Date(start_time)) {
             const startDateObj = new Date(start_time);
             const newEndDate = new Date(startDateObj);
             newEndDate.setHours(startDateObj.getHours() + 3);
             end_time = newEndDate.toISOString();
           }
-
-          console.log("Fixed start time:", start_time);
-          console.log("Fixed end time:", end_time);
-
           setCompetition({
             id: data.versus_id,
             category: "Versus",
             start_time: start_time,
             end_time: end_time,
-            max_players: data.participants.length,
+            max_players: 2, // Versus games are typically 2 players
             current_players: data.participants.length,
             participants: data.participants.map((p: any) => p.wallet),
             entry_fee: data.entry_fee,
-            base_amount: 0, // Versus doesn't have this, set to 0 or handle as needed
+            base_amount: data.base_amount || 0,
             winning_amount: data.prize_pool,
-            authority: "", // Versus doesn't have this, set to empty or handle as needed
+            authority: data.authority || "",
           });
         } else {
           setCompetition(null);
@@ -144,14 +136,69 @@ export default function SnapshotComponent() {
     fetchCompetition();
   }, [competitionId, apiUrl]);
 
+  // Registration status check
+  useEffect(() => {
+    const checkRegistrationStatus = async () => {
+      if (!wallet.connected || !wallet.publicKey || !competitionId || !apiUrl) {
+        setPlayerRegistrationStatus("loading");
+        return;
+      }
+      setPlayerRegistrationStatus("loading");
+      try {
+        // Try to fetch as participant
+        const response = await axios.post(`${apiUrl}/fetchVersus`, {
+          versus_id: competitionId,
+          wallet_address: wallet.publicKey.toString(),
+        });
+        if (response.data?.success) {
+          setPlayerRegistrationStatus("registered");
+          return;
+        }
+      } catch (error) {
+        // Not registered or not found
+        if (
+          axios.isAxiosError(error) &&
+          error.response?.status === 404 &&
+          error.response?.data?.code === "VERSUS_NOT_FOUND_OR_NOT_PARTICIPANT"
+        ) {
+          // Check if party is full
+          try {
+            const versusResponse = await axios.post(`${apiUrl}/fetchVersus`, {
+              versus_id: competitionId,
+            });
+            const versusData = versusResponse.data?.data?.[0];
+            if (
+              versusData &&
+              versusData.participants.length >= (competition?.max_players || 0)
+            ) {
+              setPlayerRegistrationStatus("party_full");
+            } else {
+              setPlayerRegistrationStatus("not_registered");
+            }
+          } catch (versusError) {
+            setPlayerRegistrationStatus("not_registered");
+          }
+        } else {
+          setPlayerRegistrationStatus("not_registered");
+        }
+      }
+    };
+    checkRegistrationStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    wallet.connected,
+    wallet.publicKey?.toString(),
+    competitionId,
+    apiUrl,
+    competition?.max_players,
+  ]);
+
   // Handle players tab click
   const handlePlayersTab = async () => {
     setActiveTab("players");
     setLoadingPlayers(true);
-
     try {
       if (!competitionId || !apiUrl) return;
-
       if (competition?.participants) {
         setPlayerAddresses(competition.participants);
       } else {
@@ -170,6 +217,47 @@ export default function SnapshotComponent() {
     }
   };
 
+  // Registration handler
+  const handleRegisterButton = async () => {
+    try {
+      if (!wallet.connected || !wallet.publicKey) {
+        toast.error("Wallet not connected");
+        return;
+      }
+      if (!competitionId || !apiUrl) {
+        toast.error("Invalid competition ID");
+        return;
+      }
+      const response = await axios.post(`${apiUrl}/joinVersus`, {
+        wallet_address: wallet.publicKey.toString(),
+        versus_id: competitionId,
+      });
+      toast.success("Successfully registered for the game!");
+      setPlayerRegistrationStatus("registered");
+      if (competition?.category === "Versus") {
+        // Refresh competition data
+        const versusResponse = await axios.post(`${apiUrl}/fetchVersus`, {
+          versus_id: competitionId,
+        });
+        const data = versusResponse.data?.data?.[0];
+        if (data) {
+          setCompetition((prev) => ({
+            ...prev!,
+            current_players: data.participants.length,
+            participants: data.participants.map((p: any) => p.wallet),
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      let errorMessage = "Failed to register";
+      if (axios.isAxiosError(error)) {
+        errorMessage = error.response?.data?.message || errorMessage;
+      }
+      toast.error(errorMessage);
+    }
+  };
+
   // Snapshot button handler
   const handleSnapshotButton = async () => {
     try {
@@ -177,13 +265,10 @@ export default function SnapshotComponent() {
         toast.error("Wallet not connected");
         return;
       }
-
       if (!competitionId || !apiUrl) {
         toast.error("Invalid competition ID");
         return;
       }
-
-      // Use correct key for snapshot endpoint
       const reqBody: any = {
         wallet_address: wallet.publicKey.toString(),
       };
@@ -192,11 +277,9 @@ export default function SnapshotComponent() {
       } else {
         reqBody.competition_id = competitionId;
       }
-
       const response = await axios.post(`${apiUrl}/snapshot`, reqBody, {
         headers: { "Content-Type": "application/json" },
       });
-
       console.log("Snapshot successful:", response.data);
       toast.success("Portfolio snapshot captured!");
     } catch (error) {
@@ -214,16 +297,9 @@ export default function SnapshotComponent() {
     if (!competition?.start_time || !competition?.end_time) {
       return { status: "loading" };
     }
-
     const now = new Date();
     const start = new Date(competition.start_time);
     const end = new Date(competition.end_time);
-
-    // Debug logging for date issues
-    console.log("Current time:", now);
-    console.log("Start time:", start, "Raw:", competition.start_time);
-    console.log("End time:", end, "Raw:", competition.end_time);
-
     if (now > end) return { status: "finished" };
     if (now < start) {
       const diffMs = start.getTime() - now.getTime();
@@ -241,23 +317,17 @@ export default function SnapshotComponent() {
     return { status: "started" };
   };
 
-  // Helper functions with proper null checks and improved date formatting
+  // Helper functions
   const formatSol = (lamports: number | undefined) =>
     lamports ? `${lamports.toFixed(3)} SOL` : "0.000 SOL";
-
   const formatUSDT = (amount: number | undefined) =>
     amount ? `${amount} USDT` : "0 USDT";
-
   const formatDate = (date: string | undefined) => {
     if (!date) return "N/A";
     const parsedDate = new Date(date);
-
-    // Check if date is valid and not from 1970 (epoch time issue)
     if (isNaN(parsedDate.getTime()) || parsedDate.getFullYear() === 1970) {
       return "Date pending";
     }
-
-    // Format date with timezone
     return parsedDate.toLocaleString(undefined, {
       year: "numeric",
       month: "short",
@@ -267,14 +337,10 @@ export default function SnapshotComponent() {
       timeZoneName: "short",
     });
   };
-
   const getDuration = (start: string | undefined, end: string | undefined) => {
     if (!start || !end) return "N/A";
-
     const startDate = new Date(start);
     const endDate = new Date(end);
-
-    // Check for invalid dates or 1970 dates (epoch time issue)
     if (
       isNaN(startDate.getTime()) ||
       isNaN(endDate.getTime()) ||
@@ -283,13 +349,10 @@ export default function SnapshotComponent() {
     ) {
       return "Duration pending";
     }
-
     const ms = endDate.getTime() - startDate.getTime();
     if (ms <= 0) return "Invalid duration";
-
     const hours = Math.floor(ms / (1000 * 60 * 60));
     const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-
     return `${hours}h ${minutes}m`;
   };
 
@@ -370,14 +433,13 @@ export default function SnapshotComponent() {
                 <InfoRow
                   label="Players"
                   value={`${competition?.current_players || 0}/${
-                    competition?.max_players || 0
+                    competition?.max_players || 2
                   }`}
-                  sub="Registered players / total"
+                  sub="Registered players / maximum slots"
                 />
               </div>
             </div>
           </div>
-
           {/* Right: Game Code */}
           <div className="flex flex-col items-center justify-center w-80">
             <div className="bg-[#181B1E] rounded-xl p-10 flex flex-col items-center mb-4">
@@ -439,12 +501,34 @@ export default function SnapshotComponent() {
           </div>
         )}
         {compStatus.status === "started" && (
-          <div
-            onClick={handleSnapshotButton}
-            className="bg-green-500 text-white text-center rounded-xl py-4 text-xl font-semibold cursor-pointer hover:bg-green-600 transition-colors"
-          >
-            Submit snapshot & Begin 🚀
-          </div>
+          <>
+            {playerRegistrationStatus === "loading" && (
+              <div className="bg-gray-500 text-white text-center rounded-xl py-4 text-xl font-semibold">
+                Checking registration status...
+              </div>
+            )}
+            {playerRegistrationStatus === "registered" && (
+              <div
+                onClick={handleSnapshotButton}
+                className="bg-green-500 text-white text-center rounded-xl py-4 text-xl font-semibold cursor-pointer hover:bg-green-600 transition-colors"
+              >
+                Submit snapshot & Begin 🚀
+              </div>
+            )}
+            {playerRegistrationStatus === "not_registered" && (
+              <div
+                onClick={handleRegisterButton}
+                className="bg-blue-500 text-white text-center rounded-xl py-4 text-xl font-semibold cursor-pointer hover:bg-blue-600 transition-colors"
+              >
+                Register to Join 📝
+              </div>
+            )}
+            {playerRegistrationStatus === "party_full" && (
+              <div className="bg-red-500 text-white text-center rounded-xl py-4 text-xl font-semibold">
+                Party Full 🚫
+              </div>
+            )}
+          </>
         )}
         {compStatus.status === "loading" && (
           <div className="bg-gray-500 text-white text-center rounded-xl py-4 text-xl font-semibold">
@@ -461,7 +545,6 @@ interface InfoRowProps {
   value: string;
   sub?: string;
 }
-
 function InfoRow({ label, value, sub }: InfoRowProps) {
   return (
     <div className="flex flex-col mb-2">

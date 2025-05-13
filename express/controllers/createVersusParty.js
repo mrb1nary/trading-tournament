@@ -78,14 +78,39 @@ export const createVersusPartyController = async (req, res) => {
       });
     }
 
-    // Verify player exists
-    const player = await Player.findOne({ player_wallet_address: authority });
+    // Find or create player
+    let player = await Player.findOne({ player_wallet_address: authority });
+
     if (!player) {
-      return res.status(403).json({
-        error: "Authority wallet not registered",
-        code: "UNREGISTERED_PLAYER",
-        solution: "Complete player registration first",
-      });
+      // Generate a unique username based on wallet address
+      const shortAddress = authority.substring(0, 8);
+      const timestamp = Date.now().toString().substring(8);
+      const randomUsername = `player_${shortAddress}_${timestamp}`;
+
+      // Generate a temporary email
+      const tempEmail = `${randomUsername}@temporary.com`;
+
+      try {
+        // Create a new player with default values
+        player = await Player.create({
+          player_wallet_address: authority,
+          player_username: randomUsername,
+          player_email: tempEmail,
+          // Other fields will use their default values
+        });
+
+        console.log(`Auto-registered new player with wallet: ${authority}`);
+      } catch (playerError) {
+        console.error("Failed to auto-register player:", playerError);
+        return res.status(500).json({
+          error: "Failed to auto-register player",
+          code: "PLAYER_REGISTRATION_FAILED",
+          details:
+            process.env.NODE_ENV === "development"
+              ? playerError.message
+              : undefined,
+        });
+      }
     }
 
     // Generate unique versus ID
@@ -127,6 +152,7 @@ export const createVersusPartyController = async (req, res) => {
         },
         players: `${1}/2`,
       },
+      player_auto_registered: player && !player.createdAt, // Indicate if player was auto-registered
     });
   } catch (error) {
     console.error("Versus creation error:", error);

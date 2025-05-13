@@ -15,7 +15,7 @@ export const createCompetitionController = async (req, res) => {
       category,
     } = req.body;
 
-    // Validation checks (unchanged)
+    // Validation checks
     const missingFields = [];
     if (!authority) missingFields.push("authority");
     if (!entry_fee) missingFields.push("entry_fee");
@@ -32,7 +32,7 @@ export const createCompetitionController = async (req, res) => {
       });
     }
 
-    // Numeric validation (unchanged)
+    // Numeric validation
     const numericFields = {
       entry_fee: Number(entry_fee),
       base_amount: Number(base_amount),
@@ -50,7 +50,7 @@ export const createCompetitionController = async (req, res) => {
       }
     }
 
-    // Category validation (unchanged)
+    // Category validation
     const categoryMap = {
       TwoPlayers: 2,
       SixPlayers: 6,
@@ -66,11 +66,11 @@ export const createCompetitionController = async (req, res) => {
       });
     }
 
-    // Generate competition ID (unchanged)
+    // Generate competition ID
     const competitionId =
       (Date.now() % 1000000) + Math.floor(Math.random() * 1000);
 
-    // Base competition object (updated for new schema)
+    // Base competition object
     const competitionData = {
       authority,
       id: competitionId,
@@ -83,11 +83,11 @@ export const createCompetitionController = async (req, res) => {
       category,
       active: true,
       payout_claimed: false,
-      participants: [], // Now simple array of ObjectIds
-      current_players: 0, // Initialize properly
+      participants: [],
+      current_players: 0,
     };
 
-    // Handle TwoPlayers special case (updated)
+    // Handle TwoPlayers special case
     if (category === "TwoPlayers") {
       const player = await Player.findOne({
         player_wallet_address: authority,
@@ -108,10 +108,10 @@ export const createCompetitionController = async (req, res) => {
       competitionData.current_players = 1;
     }
 
-    // Create competition (unchanged)
+    // Create competition
     const newCompetition = await Competition.create(competitionData);
 
-    // Response structure (unchanged)
+    // Response structure
     const response = {
       success: true,
       competition_id: newCompetition.id,

@@ -9,7 +9,7 @@ import "../globals.css";
 import { useWallet } from "@solana/wallet-adapter-react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { toast } from "react-toastify";
+
 
 export default function VersusPage() {
   const { connected, publicKey } = useWallet();
@@ -50,63 +50,63 @@ export default function VersusPage() {
   const handleJoinVersus = async () => {
     setJoining(true);
     setJoinError(null);
+    router.push(`/snapshot/${joinCompetitionId}`);
 
-    try {
-      if (!publicKey) {
-        throw new Error("Wallet not connected");
-      }
-
-      if (!joinCompetitionId) {
-        throw new Error("Please enter a valid game code");
-      }
-
-      const response = await axios.post(`${apiUrl}/joinVersus`, {
-        versus_id: parseInt(joinCompetitionId),
-        wallet_address: publicKey.toString(),
-      });
-
-      if (response.data.success) {
-        setJoinModalOpen(false);
-        setJoinCompetitionId("");
-        toast.success("Successfully joined versus game!");
-
-        // Redirect to snapshot page
-        router.push(`/snapshot/${joinCompetitionId}`);
-
-        // Refresh game list
-        if (playerData) {
-          fetchPlayerData(publicKey.toString());
-        }
-      }
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.error || err.message;
-      const errorCode = err.response?.data?.code;
-
-      switch (errorCode) {
-        case "GAME_FULL":
-          setJoinError("This game is already full");
-          break;
-        case "ALREADY_JOINED":
-          setJoinError("You've already joined this game");
-          // Add redirect for already joined players
-          toast.info("Redirecting to game snapshot...");
-          setJoinModalOpen(false);
-          router.push(`/snapshot/${joinCompetitionId}`);
-          break;
-        case "GAME_STARTED":
-          setJoinError("Game has already started");
-          break;
-        default:
-          setJoinError(errorMessage || "Failed to join game");
-      }
-
-      // Only show error toast for errors other than ALREADY_JOINED
-      if (errorCode !== "ALREADY_JOINED") {
-        toast.error(errorMessage || "Join failed");
-      }
-    } finally {
-      setJoining(false);
+    // try {
+    if (!publicKey) {
+      throw new Error("Wallet not connected");
     }
+
+    if (!joinCompetitionId) {
+      throw new Error("Please enter a valid game code");
+    }
+
+    // const response = await axios.post(`${apiUrl}/joinVersus`, {
+    //   versus_id: parseInt(joinCompetitionId),
+    //   wallet_address: publicKey.toString(),
+    // });
+
+    //   if (response.data.success) {
+    //     setJoinModalOpen(false);
+    //     setJoinCompetitionId("");
+    //     toast.success("Successfully joined versus game!");
+
+    //     // Redirect to snapshot page
+
+    //     // Refresh game list
+    //     if (playerData) {
+    //       fetchPlayerData(publicKey.toString());
+    //     }
+    //   }
+    // } catch (err: any) {
+    //   const errorMessage = err.response?.data?.error || err.message;
+    //   const errorCode = err.response?.data?.code;
+
+    //   switch (errorCode) {
+    //     case "GAME_FULL":
+    //       setJoinError("This game is already full");
+    //       break;
+    //     case "ALREADY_JOINED":
+    //       setJoinError("You've already joined this game");
+    //       // Add redirect for already joined players
+    //       toast.info("Redirecting to game snapshot...");
+    //       setJoinModalOpen(false);
+    //       router.push(`/snapshot/${joinCompetitionId}`);
+    //       break;
+    //     case "GAME_STARTED":
+    //       setJoinError("Game has already started");
+    //       break;
+    //     default:
+    //       setJoinError(errorMessage || "Failed to join game");
+    //   }
+
+    // Only show error toast for errors other than ALREADY_JOINED
+    //   if (errorCode !== "ALREADY_JOINED") {
+    //     toast.error(errorMessage || "Join failed");
+    //   }
+    // } finally {
+    //   setJoining(false);
+    // }
   };
 
   return (
@@ -180,7 +180,7 @@ export default function VersusPage() {
               background: "linear-gradient(145deg, #1E2427 0%, #121518 100%)",
               boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
             }}
-            onClick={() => router.push("/versus/MyGames")} 
+            onClick={() => router.push("/versus/MyGames")}
           >
             {/* ...icon and tooltip... */}
             <div className="flex items-center justify-center h-full">

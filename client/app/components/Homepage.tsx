@@ -16,6 +16,7 @@ import { MdOutlineTimer } from "react-icons/md";
 import axios from "axios";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import Modal from "react-modal";
+import { motion } from "framer-motion";
 
 export default function HomePage() {
   interface Competition {
@@ -26,21 +27,22 @@ export default function HomePage() {
     current_players: number;
     entry_fee: number;
     base_amount: number;
-    start_time: string; // ISO date string
-    end_time: string; // ISO date string
+    start_time: string;
+    end_time: string;
     winning_amount: number;
     category:
       | "TwoPlayers"
       | "SixPlayers"
       | "TwelvePlayers"
       | "TwentyFivePlayers";
-    winner: string | null; // Player ID
+    winner: string | null;
     payout_claimed: boolean;
     active: boolean;
-    participants: string[]; // Array of Player IDs
+    participants: string[];
   }
 
   const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   const openModal = () => setModalIsOpen(true);
   const closeModal = () => setModalIsOpen(false);
@@ -106,16 +108,21 @@ export default function HomePage() {
     if (!address || !apiUrl) return;
 
     try {
+      setIsLoading(true);
       const response = await axios.get(`${apiUrl}/fetchPlayer/${address}`);
       setPlayerData(response.data.data);
+      setShowWelcomeModal(false);
       console.log(response.data.data);
     } catch (error) {
       console.error("Error fetching player data:", error);
 
+      // If player not found, show welcome modal
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        setShowWelcomeModal(true);
+      }
       setPlayerData(null);
     } finally {
       setIsLoading(false);
-      // console.log(playerData);
     }
   };
 
@@ -132,6 +139,7 @@ export default function HomePage() {
     } else {
       setWalletAddress("Not Connected");
       setPlayerData(null);
+      setShowWelcomeModal(false);
     }
   }, [connected, publicKey, apiUrl]);
 
@@ -180,16 +188,16 @@ export default function HomePage() {
       console.log("Updating player with:", {
         player_wallet_address: walletAddress,
         player_username: username,
-        twitter_handle: xUsername, // Changed from tgUsername
-        tg_username: tgUsername, // New field
+        twitter_handle: xUsername,
+        tg_username: tgUsername,
       });
 
       // Make the API request with corrected field names
       const response = await axios.post(`${apiUrl}/updatePlayerInfo`, {
         player_wallet_address: walletAddress,
         player_username: username,
-        twitter_handle: xUsername, // Should come from Twitter input
-        tg_username: tgUsername, // Should come from Telegram input
+        twitter_handle: xUsername,
+        tg_username: tgUsername,
       });
 
       // Handle successful response
@@ -202,7 +210,7 @@ export default function HomePage() {
             ...playerData,
             username: username,
             twitter: xUsername,
-            telegram: tgUsername, // New field
+            telegram: tgUsername,
           });
         }
       } else {
@@ -232,6 +240,108 @@ export default function HomePage() {
       closeModal();
     }
   };
+
+  // Welcome Modal for new users
+  const WelcomeModal = () => (
+    <Modal
+      isOpen={showWelcomeModal}
+      onRequestClose={() => setShowWelcomeModal(false)}
+      className="relative bg-black rounded-3xl border border-[#1b2b23] max-w-3xl w-full shadow-lg outline-none p-0 mx-auto"
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md"
+      ariaHideApp={false}
+      closeTimeoutMS={200}
+    >
+      <motion.div
+        className="relative flex flex-col items-center px-8 py-10"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+      >
+        {/* Close Button */}
+        <motion.button
+          onClick={() => setShowWelcomeModal(false)}
+          className="absolute right-6 top-6 text-gray-400 text-2xl font-bold transition-colors duration-300 hover:text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400 rounded"
+          aria-label="Close"
+          whileHover={{ rotate: 90, color: "#16FF86" }}
+          whileTap={{ scale: 0.8 }}
+        >
+          ✕
+        </motion.button>
+
+        {/* Logo with glow */}
+        <div className="relative mb-6 flex flex-col items-center">
+          <div className="absolute inset-0 w-[112px] h-[112px] mx-auto rounded-full bg-green-500 opacity-20 animate-pulse blur-xl" />
+          <Image
+            src="/assets/logo.png"
+            alt="Citadel Logo"
+            width={112}
+            height={112}
+            className="relative mx-auto"
+            priority
+          />
+        </div>
+
+        {/* Title */}
+        <h2 className="text-lg font-semibold text-[#16FF86] mb-1 tracking-wide text-center select-none">
+          WELCOME
+        </h2>
+        <h1 className="text-3xl font-extrabold text-[#16FF86] mb-3 text-center tracking-tight select-none">
+          Trader
+        </h1>
+        <p className="text-gray-300 text-center mb-8 select-none">
+          A new kind of trading arena. Built for competition.
+        </p>
+
+        {/* Features */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full mb-8">
+          {[
+            {
+              title: "VERSUS. TWISTER. COMPETITION",
+              desc: "1v1 to 100 players,\nFully customizable battles.",
+            },
+            {
+              title: "EVERYONE STARTS WITH THE SAME CAPITAL.",
+              desc: "The best PnL wins. Period.",
+            },
+            {
+              title: "BUILT ON SOLANA.",
+              desc: "Trade on Raydium, Jupiter, Orca...",
+            },
+          ].map(({ title, desc }) => (
+            <div
+              key={title}
+              className="flex flex-col justify-between bg-[#181e1b] rounded-2xl border border-[#232b23] px-4 py-6 min-h-[210px]"
+            >
+              <div className="text-[#16FF86] font-bold mb-2 text-lg text-center whitespace-pre-line leading-tight">
+                {title}
+              </div>
+              <div className="text-gray-300 text-base text-center whitespace-pre-line">
+                {desc}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Call to Action */}
+        <div className="text-[#16FF86] font-medium mb-6 text-center select-none">
+          Defy your friends. Join the closed beta now.
+        </div>
+
+        <motion.button
+          className="w-full bg-[#16FF86] hover:bg-[#12c96a] text-black font-bold rounded-full py-3 text-lg transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-green-400"
+          onClick={() => setShowWelcomeModal(false)}
+          whileHover={{
+            scale: 1.05,
+            boxShadow: "0 0 8px rgb(22 255 134 / 0.6)",
+          }}
+          whileTap={{ scale: 0.95 }}
+        >
+          JOIN BETA
+        </motion.button>
+      </motion.div>
+    </Modal>
+  );
 
   return (
     <>
@@ -681,6 +791,7 @@ export default function HomePage() {
               playerData={playerData || undefined}
             />
           </div>
+          <WelcomeModal />
         </div>
         <Footer />
       </main>
