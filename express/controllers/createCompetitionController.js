@@ -87,23 +87,51 @@ export const createCompetitionController = async (req, res) => {
       current_players: 0,
     };
 
-    // Handle TwoPlayers special case
+    // Handle TwoPlayers special case with auto-registration
+    let isNewPlayer = false;
     if (category === "TwoPlayers") {
-      const player = await Player.findOne({
+      let player = await Player.findOne({
         player_wallet_address: authority,
-      })
-        .select("_id")
-        .lean();
+      }).lean();
 
       if (!player) {
-        return res.status(404).json({
-          error: "Player profile required for versus mode",
-          solution: "Complete player registration first",
-          code: "PLAYER_NOT_FOUND",
-        });
+        // Generate username matching model constraints
+        const shortAddress = authority
+          .substring(0, 8)
+          .replace(/[^a-zA-Z0-9]/g, "");
+        const timestamp = Date.now().toString().substring(8);
+        const randomUsername = `player_${shortAddress}_${timestamp}`.substring(
+          0,
+          20
+        );
+        const tempEmail = `${randomUsername}@temporary.com`;
+
+        try {
+          player = await Player.create({
+            player_wallet_address: authority,
+            player_username: randomUsername,
+            player_email: tempEmail,
+            // Default values from model schema
+            total_profit: 0,
+            total_points: 0,
+            competitions_played: [],
+            versus_played: [],
+          });
+          isNewPlayer = true;
+          console.log(`Auto-registered new player: ${authority}`);
+        } catch (playerError) {
+          console.error("Player registration failed:", playerError);
+          return res.status(500).json({
+            error: "Failed to auto-register player",
+            code: "PLAYER_REGISTRATION_FAILED",
+            details:
+              process.env.NODE_ENV === "development"
+                ? playerError.message
+                : undefined,
+          });
+        }
       }
 
-      // Add player reference directly to participants array
       competitionData.participants.push(player._id);
       competitionData.current_players = 1;
     }
@@ -123,6 +151,7 @@ export const createCompetitionController = async (req, res) => {
         )} hours`,
         max_players: categoryMap[category],
       },
+      player_auto_registered: isNewPlayer,
     };
 
     res.status(201).json(response);

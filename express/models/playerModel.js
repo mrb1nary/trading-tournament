@@ -16,7 +16,7 @@ const CompetitionPlayedSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Competition",
       required: true,
-      // Removed index from here as it causes the parallel array issue
+      
     },
     profits: {
       USDC: { type: ProfitSchema, default: () => ({}) },
@@ -47,7 +47,7 @@ const VersusPlayedSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Versus",
       required: true,
-      // Removed index from here as it causes the parallel array issue
+      
     },
     profits: {
       USDC: { type: ProfitSchema, default: () => ({}) },
@@ -78,7 +78,7 @@ const PlayerSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      sparse: true, // Ensures no duplicate wallet addresses
+      sparse: true, 
     },
     twitter_handle: {
       type: String,
@@ -180,17 +180,12 @@ PlayerSchema.index({
   tg_username: 1,
 });
 
-// IMPORTANT: Fix for parallel array indexing issue
-// Only index one of the arrays, not both
-// Choose the one that's most frequently queried
+
 PlayerSchema.index({
   "competitions_played.competition": 1,
 });
 
-// Remove this index to solve the parallel array indexing error
-// PlayerSchema.index({
-//   "versus_played.versus": 1,
-// });
+
 
 PlayerSchema.plugin(mongooseUniqueValidator, {
   message: "{PATH} must be unique.",
