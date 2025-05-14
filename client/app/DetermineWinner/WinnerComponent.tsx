@@ -18,7 +18,7 @@ interface Competition {
   category: string;
   winner: string;
   payout_claimed: string;
-  participants: string[]; 
+  participants: string[];
   _id: string;
   id: number;
   name?: string;
@@ -29,7 +29,8 @@ interface Competition {
   entry_fee?: number;
 }
 
-const ADMIN_WALLET = "tSg5Ugo5CVuL374natxs6DL8zxXbaBvowqs9Htd2eqd";
+const ADMIN_WALLET1 = "tSg5Ugo5CVuL374natxs6DL8zxXbaBvowqs9Htd2eqd";
+const ADMIN_WALLET2 = "4SZeDRxVPTGZJLjYXbcqKCJWdLvf23C8d3cJYdKJ3bx1";
 
 const WinnerComponent = () => {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
@@ -44,7 +45,7 @@ const WinnerComponent = () => {
     useState<Competition | null>(null);
 
   const { publicKey } = useWallet();
-  const isAdmin = publicKey?.toString() === ADMIN_WALLET;
+  const isAdmin = publicKey?.toString() === ADMIN_WALLET1 || ADMIN_WALLET2;
 
   // Fetch all competitions on mount
   const fetchCompetitions = async () => {
@@ -107,7 +108,6 @@ const WinnerComponent = () => {
       setModalLoading(false);
     }
   };
-
 
   if (!isAdmin) {
     return (
