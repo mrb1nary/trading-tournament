@@ -393,9 +393,7 @@ function CreateGame() {
                 Start Time:
               </label>
               <DateTimePicker
-                value={
-                  gameData.start_time ? dayjs(gameData.start_time) : null
-                }
+                value={gameData.start_time ? dayjs(gameData.start_time) : null}
                 onChange={(newValue) =>
                   handleDateChange("start_time", newValue)
                 }
@@ -445,13 +443,10 @@ function CreateGame() {
               </label>
               <DateTimePicker
                 value={gameData.end_time ? dayjs(gameData.end_time) : null}
-                value={gameData.end_time ? dayjs(gameData.end_time) : null}
                 onChange={(newValue) => handleDateChange("end_time", newValue)}
                 className="w-full"
-                //@ts-ignore
                 minDateTime={
-                  gameData.start_time ? dayjs(gameData.start_time) : null
-                  gameData.start_time ? dayjs(gameData.start_time) : null
+                  gameData.start_time ? dayjs(gameData.start_time) : undefined
                 }
                 slotProps={{
                   textField: {
