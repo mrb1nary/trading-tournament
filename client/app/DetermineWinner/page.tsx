@@ -1,18 +1,18 @@
 "use client";
 import React from "react";
 import { useSolanaWallet } from "../WalletProvider";
-import WinnerComponent from "./WinnerComponent";
 import Navbar from "../components/Navbar";
+import Tabs from "./Tabs";
 
-function page() {
+function Page() {
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const WalletProvider = useSolanaWallet();
   return (
     <WalletProvider>
       <Navbar />
-      <WinnerComponent />
+      <Tabs />
     </WalletProvider>
   );
 }
 
-export default page;
+export default Page;

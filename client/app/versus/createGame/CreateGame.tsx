@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,6 +11,7 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { motion } from "framer-motion";
 import axios from "axios";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 interface GameData {
   entry_fee: number;
@@ -21,9 +23,10 @@ interface GameData {
   custom_base_amount: string;
 }
 
+const PLATFORM_FEE_PERCENTAGE = 10; // 10%
+
 function CreateGame() {
   const wallet = useWallet();
-  const PLATFORM_FEE_PERCENTAGE = 10; // 10%
 
   const calculateMaxWinningAmount = (entryFee: number): number => {
     try {
@@ -37,7 +40,7 @@ function CreateGame() {
     }
   };
 
-  const [gameData, setGameData] = useState<GameData>({
+  const initialGameState: GameData = {
     entry_fee: 0.05,
     base_amount: 10,
     start_time: null,
@@ -45,8 +48,9 @@ function CreateGame() {
     winning_amount: calculateMaxWinningAmount(0.05),
     custom_entry_fee: "",
     custom_base_amount: "",
-  });
+  };
 
+  const [gameData, setGameData] = useState<GameData>(initialGameState);
   const [isCustomEntryFee, setIsCustomEntryFee] = useState(false);
   const [isCustomBaseAmount, setIsCustomBaseAmount] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,7 +61,7 @@ function CreateGame() {
     }
   }, [wallet.connected, wallet.publicKey]);
 
-  // Update winning amount when entry fee or category changes
+  // Update winning amount when entry fee changes
   useEffect(() => {
     try {
       const maxWinningAmount = calculateMaxWinningAmount(gameData.entry_fee);
@@ -114,7 +118,7 @@ function CreateGame() {
     try {
       setGameData({
         ...gameData,
-        [name]: newValue ? newValue.unix() : null,
+        [name]: newValue ? newValue.valueOf() : null, // milliseconds
       });
     } catch (error) {
       console.error("Error handling date change:", error);
@@ -135,24 +139,26 @@ function CreateGame() {
         return;
       }
 
-      // Set loading state
+      // Validate time difference (minimum 5 minutes)
+      const minDuration = 5 * 60 * 1000; // 5 minutes in milliseconds
+      if (gameData.end_time - gameData.start_time < minDuration) {
+        toast.error("Minimum game duration is 5 minutes");
+        return;
+      }
+
       setIsSubmitting(true);
 
       const finalGameData = {
         authority: wallet.publicKey?.toString(),
-        entry_fee: Math.floor(gameData.entry_fee * 1e9), // Convert to lamports
-        base_amount: Math.floor(gameData.base_amount * 1e6), // convert to base units of USDT
-        start_time: gameData.start_time,
-        end_time: gameData.end_time,
-        winning_amount: Math.floor(
-          parseFloat(gameData.winning_amount.toFixed(3)) * 1e9
-        ), // convert to lamports
+        entry_fee: Math.floor(gameData.entry_fee * LAMPORTS_PER_SOL),
+        base_amount: Math.floor(gameData.base_amount * 1e6), // USDT has 6 decimals
+        start_time: gameData.start_time, // Already in milliseconds
+        end_time: gameData.end_time, // Already in milliseconds
+        winning_amount: Math.floor(gameData.winning_amount * LAMPORTS_PER_SOL),
       };
 
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
-
-      // Send request to the versus party endpoint
       const response = await axios.post(
         `${apiUrl}/createVersusParty`,
         finalGameData
@@ -160,19 +166,17 @@ function CreateGame() {
 
       if (response.data.success) {
         toast.success("Versus game created successfully!");
-        console.log("Versus game created:", response.data);
-        // Optionally redirect to a game details page or clear form
+        console.log("Game created:", response.data);
+        setGameData(initialGameState);
       } else {
         toast.error(response.data.error || "Failed to create versus game");
       }
     } catch (error) {
-      console.error("Error submitting form:", error);
-      if (axios.isAxiosError(error) && error.response) {
-        toast.error(
-          error.response.data.error || "Failed to create versus game"
-        );
+      console.error("Submission error:", error);
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data?.error || "Network error");
       } else {
-        toast.error("An error occurred while creating the game");
+        toast.error("Failed to create game");
       }
     } finally {
       setIsSubmitting(false);
@@ -192,6 +196,7 @@ function CreateGame() {
     { value: 50, label: "50 USDT" },
     { value: "custom", label: "Custom" },
   ];
+
   return (
     <main className="min-h-screen relative overflow-hidden bg-gradient-to-br from-gray-900 to-black text-white">
       <div className="absolute w-[150vw] h-[150vw] rounded-full -right-[75vw] top-1/2 -translate-y-1/2 pointer-events-none z-0 gradient-background" />
@@ -241,6 +246,7 @@ function CreateGame() {
               </motion.div>
             )}
 
+            {/* Entry Fee */}
             <motion.div
               className="mb-6"
               initial={{ opacity: 0, y: 20 }}
@@ -285,6 +291,7 @@ function CreateGame() {
               )}
             </motion.div>
 
+            {/* Base Amount */}
             <motion.div
               className="mb-6"
               initial={{ opacity: 0, y: 20 }}
@@ -329,6 +336,7 @@ function CreateGame() {
               )}
             </motion.div>
 
+            {/* Category */}
             <motion.div
               className="mb-6"
               initial={{ opacity: 0, y: 20 }}
@@ -352,6 +360,7 @@ function CreateGame() {
               </select>
             </motion.div>
 
+            {/* Winning Amount */}
             <motion.div
               className="mb-6"
               initial={{ opacity: 0, y: 20 }}
@@ -374,6 +383,7 @@ function CreateGame() {
               </div>
             </motion.div>
 
+            {/* Start Time */}
             <motion.div
               className="mb-6"
               initial={{ opacity: 0, y: 20 }}
@@ -387,9 +397,7 @@ function CreateGame() {
                 Start Time:
               </label>
               <DateTimePicker
-                value={
-                  gameData.start_time ? dayjs.unix(gameData.start_time) : null
-                }
+                value={gameData.start_time ? dayjs(gameData.start_time) : null}
                 onChange={(newValue) =>
                   handleDateChange("start_time", newValue)
                 }
@@ -424,6 +432,7 @@ function CreateGame() {
               />
             </motion.div>
 
+            {/* End Time */}
             <motion.div
               className="mb-6"
               initial={{ opacity: 0, y: 20 }}
@@ -437,12 +446,12 @@ function CreateGame() {
                 End Time:
               </label>
               <DateTimePicker
-                value={gameData.end_time ? dayjs.unix(gameData.end_time) : null}
+                value={gameData.end_time ? dayjs(gameData.end_time) : null}
                 onChange={(newValue) => handleDateChange("end_time", newValue)}
                 className="w-full"
-                //@ts-expect-error IDK I will fix it later
+                //@ts-ignore
                 minDateTime={
-                  gameData.start_time ? dayjs.unix(gameData.start_time) : null
+                  gameData.start_time ? dayjs(gameData.start_time) : null
                 }
                 slotProps={{
                   textField: {

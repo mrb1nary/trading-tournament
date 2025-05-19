@@ -32,7 +32,7 @@ interface Competition {
 const ADMIN_WALLET1 = "tSg5Ugo5CVuL374natxs6DL8zxXbaBvowqs9Htd2eqd";
 const ADMIN_WALLET2 = "4SZeDRxVPTGZJLjYXbcqKCJWdLvf23C8d3cJYdKJ3bx1";
 
-const WinnerComponent = () => {
+const CompetitionComponent = () => {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -409,4 +409,4 @@ const WinnerComponent = () => {
   );
 };
 
-export default WinnerComponent;
+export default CompetitionComponent;

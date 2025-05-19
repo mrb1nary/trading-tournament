@@ -1,4 +1,5 @@
 import { Player } from "../models/playerModel.js";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 export const fetchPlayerController = async (req, res) => {
   try {
@@ -14,10 +15,12 @@ export const fetchPlayerController = async (req, res) => {
     const player = await Player.findOne({ player_wallet_address: address })
       .populate({
         path: "competitions_played.competition",
-        select: "id start_time end_time category max_players entry_fee winner",
+        select:
+          "id start_time end_time category max_players entry_fee winner base_amount",
         model: "Competition",
       })
-      .select("-__v -createdAt -updatedAt");
+      .select("-__v -createdAt -updatedAt")
+      .lean();
 
     if (!player) {
       return res.status(404).json({
@@ -26,76 +29,105 @@ export const fetchPlayerController = async (req, res) => {
       });
     }
 
-    // Calculate all stats directly
-    const competitionsPlayed = player.competitions_played.filter(
-      (cp) => cp.competition
-    );
-    const totalTrades = competitionsPlayed.reduce(
-      (sum, cp) =>
-        sum +
-        cp.profits.USDC.buys +
-        cp.profits.USDC.sells +
-        cp.profits.USDT.buys +
-        cp.profits.USDT.sells +
-        cp.profits.SOL.buys +
-        cp.profits.SOL.sells,
-      0
+    // Add fallback for undefined competitions_played
+    const validCompetitions = (player.competitions_played || []).filter(
+      (cp) => cp.competition && cp.competition._id
     );
 
-    const averagePosition =
-      competitionsPlayed.length > 0
-        ? competitionsPlayed.reduce((sum, cp) => sum + cp.position, 0) /
-          competitionsPlayed.length
-        : 0;
+    // Helper function for currency formatting
+    const formatCurrency = (value, decimals) =>
+      parseFloat(value.toFixed(decimals));
+
+    // Calculate statistics using validCompetitions
+    const stats = {
+      totalTrades: validCompetitions.reduce(
+        (sum, cp) =>
+          sum +
+          (cp.profits?.USDC?.buys || 0) +
+          (cp.profits?.USDC?.sells || 0) +
+          (cp.profits?.USDT?.buys || 0) +
+          (cp.profits?.USDT?.sells || 0) +
+          (cp.profits?.SOL?.buys || 0) +
+          (cp.profits?.SOL?.sells || 0),
+        0
+      ),
+
+      averagePosition:
+        validCompetitions.length > 0
+          ? formatCurrency(
+              validCompetitions.reduce((sum, cp) => sum + cp.position, 0) /
+                validCompetitions.length,
+              2
+            )
+          : 0,
+
+      winRate:
+        validCompetitions.length > 0
+          ? formatCurrency(
+              (validCompetitions.filter((cp) => cp.position === 1).length /
+                validCompetitions.length) *
+                100,
+              2
+            )
+          : 0,
+    };
 
     return res.status(200).json({
       success: true,
       data: {
-        // Direct player info
-        _id: player._id,
+        _id: player._id.toString(),
         wallet: player.player_wallet_address,
         username: player.player_username,
         email: player.player_email,
         twitter: player.twitter_handle,
         telegram: player.tg_username,
 
-        // Stats
-        total_profit: player.total_profit,
-        total_points: player.total_points,
-        total_competitions: competitionsPlayed.length,
-        usdc_profit: competitionsPlayed.reduce(
-          (sum, cp) => sum + (cp.profits?.USDC?.net || 0),
-          0
+        total_profit: formatCurrency(player.total_profit || 0, 2),
+        total_points: player.total_points || 0,
+        total_competitions: validCompetitions.length,
+        usdc_profit: formatCurrency(
+          validCompetitions.reduce(
+            (sum, cp) => sum + (cp.profits?.USDC?.net || 0),
+            0
+          ),
+          2
         ),
-        usdt_profit: competitionsPlayed.reduce(
-          (sum, cp) => sum + (cp.profits?.USDT?.net || 0),
-          0
+        usdt_profit: formatCurrency(
+          validCompetitions.reduce(
+            (sum, cp) => sum + (cp.profits?.USDT?.net || 0),
+            0
+          ),
+          2
         ),
-        sol_profit: competitionsPlayed.reduce(
-          (sum, cp) => sum + (cp.profits?.SOL?.net || 0),
-          0
+        sol_profit: formatCurrency(
+          validCompetitions.reduce(
+            (sum, cp) => sum + (cp.profits?.SOL?.net || 0),
+            0
+          ),
+          9
         ),
-        win_rate: player.win_rate,
+        win_rate: stats.winRate,
 
-        // Historical stats
-        total_trades: totalTrades,
-        average_position: averagePosition,
+        total_trades: stats.totalTrades,
+        average_position: stats.averagePosition,
 
-        // Competitions array (only nested structure)
-        competitions: competitionsPlayed.map((cp) => ({
+        competitions: validCompetitions.map((cp) => ({
           competition_id: cp.competition.id,
           category: cp.competition.category,
-          entry_fee: cp.entry_fee,
-          prize_pool: cp.competition.base_amount,
+          entry_fee: formatCurrency((cp.entry_fee || 0) / LAMPORTS_PER_SOL, 9),
+          prize_pool: formatCurrency(
+            (cp.competition.base_amount || 0) / LAMPORTS_PER_SOL,
+            9
+          ),
           max_players: cp.competition.max_players,
           position: cp.position,
-          profit: cp.profits.total,
-          points_earned: cp.points_earned,
+          profit: formatCurrency(cp.profits?.total || 0, 2),
+          points_earned: cp.points_earned || 0,
           timeframe: {
-            start: cp.competition.start_time,
-            end: cp.competition.end_time,
+            start: cp.competition.start_time?.toISOString(),
+            end: cp.competition.end_time?.toISOString(),
           },
-          winner: cp.competition.winner,
+          winner: cp.competition.winner?.toString(),
         })),
       },
     });
@@ -104,7 +136,10 @@ export const fetchPlayerController = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Server error",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+      ...(process.env.NODE_ENV === "development" && {
+        error: error.message,
+        stack: error.stack,
+      }),
     });
   }
 };
