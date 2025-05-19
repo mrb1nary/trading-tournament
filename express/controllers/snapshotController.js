@@ -8,15 +8,44 @@ import { Versus } from "../models/versusModel.js";
 
 dotenv.config();
 
-// Ensure sparse indexes are created once at startup
-UserAssetSnapshot.collection.createIndex(
-  { player: 1, competition: 1 },
-  { unique: true, sparse: true }
-);
-UserAssetSnapshot.collection.createIndex(
-  { player: 1, versus: 1 },
-  { unique: true, sparse: true }
-);
+// Initialize indexes with explicit names
+const initializeIndexes = async () => {
+  try {
+    // Drop existing conflicting indexes if they exist
+    try {
+      await UserAssetSnapshot.collection.dropIndex("player_1_competition_1");
+      await UserAssetSnapshot.collection.dropIndex("player_1_versus_1");
+    } catch (dropError) {
+      console.log("Indexes already removed or not present");
+    }
+
+    // Create new partial indexes
+    await UserAssetSnapshot.collection.createIndex(
+      { player: 1, competition: 1 },
+      {
+        unique: true,
+        name: "partial_player_competition_unique",
+        partialFilterExpression: { competition: { $exists: true } },
+      }
+    );
+
+    await UserAssetSnapshot.collection.createIndex(
+      { player: 1, versus: 1 },
+      {
+        unique: true,
+        name: "partial_player_versus_unique",
+        partialFilterExpression: { versus: { $exists: true } },
+      }
+    );
+
+    console.log("Indexes initialized successfully");
+  } catch (error) {
+    console.error("Index initialization error:", error.message);
+  }
+};
+
+// Call this during application startup
+initializeIndexes();
 
 export const snapshotController = async (req, res) => {
   try {
@@ -42,7 +71,7 @@ export const snapshotController = async (req, res) => {
       }
       gameId = game._id;
       gameType = "versus";
-    } else if (competition_id) {
+    } else {
       game = await Competition.findOne({ id: competition_id });
       if (!game) {
         return res
@@ -84,6 +113,7 @@ export const snapshotController = async (req, res) => {
       }
     };
 
+    // Get SOL balance
     const solBalanceData = await fetchWithRetry({
       jsonrpc: "2.0",
       id: "sol-balance",
@@ -92,15 +122,12 @@ export const snapshotController = async (req, res) => {
     });
     const solBalance = solBalanceData.result.value / 1_000_000_000;
 
+    // Get token assets
     const assetData = await fetchWithRetry({
       jsonrpc: "2.0",
       id: "get-assets",
       method: "getAssetsByOwner",
-      params: {
-        ownerAddress: wallet_address,
-        page: 1,
-        limit: 1000,
-      },
+      params: { ownerAddress: wallet_address, page: 1, limit: 1000 },
     });
 
     const assets = [
@@ -117,7 +144,7 @@ export const snapshotController = async (req, res) => {
         const symbol =
           asset.content?.metadata?.symbol || asset.symbol || "UNKNOWN";
         const balance = asset.tokenAmount || asset.amount || 1;
-        let usdValue = ["USDC", "USDT"].includes(symbol)
+        const usdValue = ["USDC", "USDT"].includes(symbol)
           ? parseFloat(balance)
           : parseFloat(balance) * 1.0;
 
@@ -145,23 +172,19 @@ export const snapshotController = async (req, res) => {
     session.startTransaction();
 
     try {
-      const specificQuery = {
+      const query = {
         player: user._id,
         wallet_address,
+        ...(gameType === "competition"
+          ? { competition: gameId }
+          : { versus: gameId }),
       };
 
-      if (gameType === "competition") {
-        specificQuery.competition = gameId;
-      } else if (gameType === "versus") {
-        specificQuery.versus = gameId;
-      }
+      console.log("[QUERY] Finding existing snapshot with:", query);
 
-      console.log("[QUERY] Finding existing snapshot with:", specificQuery);
-
-      let existingSnapshot = await UserAssetSnapshot.findOne(
-        specificQuery
-      ).session(session);
-
+      let existingSnapshot = await UserAssetSnapshot.findOne(query).session(
+        session
+      );
       let savedSnapshot;
 
       if (existingSnapshot) {
@@ -173,22 +196,10 @@ export const snapshotController = async (req, res) => {
           player: user._id,
           wallet_address,
           startSnapshot: currentSnapshot,
-          endSnapshot: {
-            snapshot_timestamp: new Date(),
-            assets: [],
-            total_portfolio_value: 0,
-          },
+          [gameType]: gameId,
         };
 
-        // Only assign one of these fields; skip null assignment
-        if (gameType === "competition") {
-          snapshotData.competition = gameId;
-        } else if (gameType === "versus") {
-          snapshotData.versus = gameId;
-        }
-
         console.log("[INSERT] Snapshot data to be saved:", snapshotData);
-
         const snapshot = new UserAssetSnapshot(snapshotData);
         savedSnapshot = await snapshot.save({ session });
       }

@@ -21,12 +21,12 @@ const AssetSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 0,
-      set: (v) => Number(v.toFixed(6)), // Precision for tokens
+      set: (v) => Number(v.toFixed(6)),
     },
     usd_value: {
       type: Number,
       min: 0,
-      set: (v) => Number(v.toFixed(2)), // Monetary precision
+      set: (v) => Number(v.toFixed(2)),
     },
   },
   { _id: false }
@@ -37,10 +37,11 @@ const SnapshotSchema = new mongoose.Schema(
     snapshot_timestamp: {
       type: Date,
       required: true,
-      index: -1, // Descending index
+      index: -1,
     },
     assets: {
       type: [AssetSchema],
+      required: true,
       validate: {
         validator: (v) => v.length > 0,
         message: "At least one asset required",
@@ -62,23 +63,11 @@ const UserSnapshotSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Competition",
       index: true,
-      validate: {
-        validator: function (v) {
-          return !v || this.versus; // XOR validation in pre-hook
-        },
-        message: "Cannot set both competition and versus",
-      },
     },
     versus: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Versus",
       index: true,
-      validate: {
-        validator: function (v) {
-          return !v || this.competition; // XOR validation in pre-hook
-        },
-        message: "Cannot set both versus and competition",
-      },
     },
     player: {
       type: mongoose.Schema.Types.ObjectId,
@@ -97,15 +86,11 @@ const UserSnapshotSchema = new mongoose.Schema(
     },
     startSnapshot: {
       type: SnapshotSchema,
-      required: function () {
-        return !!this.endSnapshot; // Required if endSnapshot exists
-      },
+      required: true, 
     },
     endSnapshot: {
       type: SnapshotSchema,
-      required: function () {
-        return !!this.startSnapshot; // Required if startSnapshot exists
-      },
+      required: false, 
     },
     calculation_method: {
       type: String,
@@ -122,31 +107,41 @@ const UserSnapshotSchema = new mongoose.Schema(
 
 // Enhanced Validation
 UserSnapshotSchema.pre("validate", function (next) {
-  // XOR validation
-  if (!this.competition !== !this.versus) {
+  // XOR validation - exactly one game reference
+  const hasCompetition = !!this.competition;
+  const hasVersus = !!this.versus;
+
+  if (hasCompetition !== hasVersus) {
+    // Exactly one must be set
     next();
   } else {
-    this.invalidate(
-      "competition",
-      "Exactly one of competition or versus must be provided"
-    );
-    next(new Error("Must provide either competition or versus"));
+    const err = new Error("Must provide exactly one of competition or versus");
+    next(err);
   }
 });
 
-// Index Optimization
-UserSnapshotSchema.index({
-  wallet_address: 1,
-  "startSnapshot.snapshot_timestamp": -1,
-});
+// Partial indexes for unique constraints
+UserSnapshotSchema.index(
+  { player: 1, competition: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { competition: { $exists: true } },
+  }
+);
 
-UserSnapshotSchema.index({
-  "startSnapshot.assets.mint_address": 1,
-  "endSnapshot.assets.mint_address": 1,
-});
+UserSnapshotSchema.index(
+  { player: 1, versus: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { versus: { $exists: true } },
+  }
+);
 
-// TTL for snapshots (90 days retention)
-UserSnapshotSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7776000 });
+// TTL index (90 days)
+UserSnapshotSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: 90 * 24 * 60 * 60 } // 90 days in seconds
+);
 
 // Virtuals
 UserSnapshotSchema.virtual("duration").get(function () {
@@ -158,20 +153,13 @@ UserSnapshotSchema.virtual("duration").get(function () {
 
 // Methods
 UserSnapshotSchema.methods.calculateProfit = function () {
-  if (!this.startSnapshot || !this.endSnapshot) return 0;
+  if (!this.endSnapshot) return 0;
   return Number(
     (
       this.endSnapshot.total_portfolio_value -
       this.startSnapshot.total_portfolio_value
     ).toFixed(2)
   );
-};
-
-// Static Query Helpers
-UserSnapshotSchema.statics.findByCompetition = function (competitionId) {
-  return this.find({ competition: competitionId })
-    .sort({ "startSnapshot.snapshot_timestamp": -1 })
-    .populate("player", "player_wallet_address total_profit");
 };
 
 export const UserAssetSnapshot = mongoose.model(
