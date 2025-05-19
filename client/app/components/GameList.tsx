@@ -1,4 +1,7 @@
 import React from "react";
+import { toast } from "react-toastify";
+import { FiClipboard } from "react-icons/fi";
+
 interface Competition {
   _id: string;
   authority: string;
@@ -51,13 +54,18 @@ const GameList: React.FC<GameListProps> = ({ games, playerData }) => {
   };
 
   // Function to format SOL amounts
-  const formatSol = (lamports: number) =>
-    `SOL ${(lamports / 1000000).toFixed(2)}`;
+  const formatSol = (amount: number) => `SOL ${amount.toFixed(2)}`;
 
   // Function to format USDT amounts
   const formatUsdt = (amount: number) => `USDT ${amount.toFixed(2)}`;
 
-  console.log(playerData);
+  // Copy game code to clipboard and show toast
+  const handleCopy = (code: number) => {
+    navigator.clipboard.writeText(code.toString());
+    toast.success("Game code copied to clipboard!", {
+      position: "bottom-right",
+    });
+  };
 
   return (
     <div className="py-8 w-full mx-auto my-32">
@@ -112,16 +120,31 @@ const GameList: React.FC<GameListProps> = ({ games, playerData }) => {
                   className="border-b border-gray-800 hover:bg-[#262D31] cursor-pointer"
                 >
                   <td className="py-4 px-6 text-gray-400">{index + 1}</td>
-                  <td className="py-4 px-6 text-green-400 font-medium">
+                  <td className="py-4 px-6 text-green-400 font-medium flex items-center gap-2">
                     {game.id}
+                    <button
+                      title="Copy Game Code"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopy(game.id);
+                      }}
+                      className="ml-2 p-1 rounded hover:bg-gray-700 transition"
+                      tabIndex={0}
+                      aria-label="Copy game code"
+                    >
+                      <FiClipboard className="w-5 h-5 text-gray-300 hover:text-green-400" />
+                    </button>
                   </td>
                   <td className="py-4 px-6 text-gray-400">{game.category}</td>
-                  <td className="py-4 px-6 text-[#00FF00]">
+                  <td
+                    className="py-4 px-6"
+                    style={{ color: game.winner ? "#00FF00" : "#FFD600" }}
+                  >
                     {game.winner
                       ? game.winner === playerData?._id
                         ? "#1"
                         : "Participated"
-                      : "In Progress"}
+                      : "Not Declared"}
                   </td>
                   <td className="py-4 px-6 text-gray-400">
                     {formatSol(game.winning_amount)}
