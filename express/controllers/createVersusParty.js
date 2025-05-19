@@ -13,64 +13,28 @@ export const createVersusPartyController = async (req, res) => {
       start_time,
       end_time,
       winning_amount,
-      custom_entry_fee,
-      custom_base_amount,
     } = req.body;
 
-    // Convert from lamports/base units to proper decimals
-    const convertUnits = {
-      entry_fee: (val) => Number(val) / LAMPORTS_PER_SOL,
-      base_amount: (val) => Number(val) / 1000000, // USDT has 6 decimals
-      winning_amount: (val) => Number(val) / LAMPORTS_PER_SOL,
+    // Convert timestamps from milliseconds to seconds (if needed)
+    const convertTimestamp = (val) => {
+      const timestamp = Number(val);
+      return timestamp > 9999999999 ? Math.floor(timestamp / 1000) : timestamp;
     };
 
-    // Process values with unit conversion
+    // Process values with proper unit conversions
     const processedValues = {
-      entry_fee: convertUnits.entry_fee(custom_entry_fee ?? entry_fee),
-      base_amount: convertUnits.base_amount(custom_base_amount ?? base_amount),
-      winning_amount: convertUnits.winning_amount(winning_amount),
-      start_time: Number(start_time),
-      end_time: Number(end_time),
+      entry_fee: Number(entry_fee) / LAMPORTS_PER_SOL,
+      base_amount: Number(base_amount) / 1e6, // USDT has 6 decimals
+      winning_amount: Number(winning_amount) / LAMPORTS_PER_SOL,
+      start_time: convertTimestamp(start_time),
+      end_time: convertTimestamp(end_time),
     };
 
-    // Validate numeric ranges after conversion
-    const validations = [
-      {
-        check:
-          processedValues.entry_fee < 0.01 || processedValues.entry_fee > 100,
-        error: "Entry fee must be between 0.01 and 100 SOL",
-        code: "INVALID_ENTRY_FEE",
-      },
-      {
-        check:
-          processedValues.base_amount < 10 ||
-          processedValues.base_amount > 10000,
-        error: "Base amount must be between 10 and 10,000 USDT",
-        code: "INVALID_BASE_AMOUNT",
-      },
-      {
-        check:
-          processedValues.winning_amount < 0.01 ||
-          processedValues.winning_amount > 100000,
-        error: "Winning amount must be between 0.01 and 100,000 SOL",
-        code: "INVALID_WINNING_AMOUNT",
-      },
-    ];
+    // Convert to Date objects with proper handling
+    const startDate = new Date(processedValues.start_time * 1000);
+    const endDate = new Date(processedValues.end_time * 1000);
 
-    for (const validation of validations) {
-      if (validation.check) {
-        return res.status(400).json({
-          error: validation.error,
-          code: validation.code,
-        });
-      }
-    }
-
-    // Convert timestamps
-    const startDate = new Date(processedValues.start_time);
-    const endDate = new Date(processedValues.end_time);
-
-    // Time validation
+    // Validate date range
     if (startDate >= endDate) {
       return res.status(400).json({
         error: "End time must be after start time",
@@ -78,17 +42,26 @@ export const createVersusPartyController = async (req, res) => {
       });
     }
 
+    // Additional date validation
+    const currentYear = new Date().getFullYear();
+    if (
+      startDate.getFullYear() < currentYear - 1 ||
+      endDate.getFullYear() > currentYear + 1
+    ) {
+      return res.status(400).json({
+        error: "Invalid date range",
+        code: "INVALID_DATE_RANGE",
+      });
+    }
+
     // Find or create player
     let player = await Player.findOne({ player_wallet_address: authority });
 
     if (!player) {
-      // Generate a compliant username (max 20 chars, alphanumeric only)
-      const cleanAddress = authority.replace(/[^a-zA-Z0-9]/g, ""); // Remove non-alphanumeric chars
-      const shortAddress = cleanAddress.substring(0, 8); // Max 8 chars
-      const timestamp = Date.now().toString().slice(-5); // Last 5 digits
-      const randomUsername = `plr${shortAddress}${timestamp}`.substring(0, 20); // Max 20 chars
-
-      // Generate temporary email (underscores allowed in email local-part)
+      const cleanAddress = authority.replace(/[^a-zA-Z0-9]/g, "");
+      const shortAddress = cleanAddress.substring(0, 8);
+      const timestamp = Date.now().toString().slice(-5);
+      const randomUsername = `plr${shortAddress}${timestamp}`.substring(0, 20);
       const tempEmail = `${randomUsername}@temp.com`;
 
       try {
@@ -97,12 +70,14 @@ export const createVersusPartyController = async (req, res) => {
           player_username: randomUsername,
           player_email: tempEmail,
         });
-        console.log(`Auto-registered new player: ${authority}`);
       } catch (playerError) {
-        // Error handling remains same
+        return res.status(400).json({
+          error: "Failed to create player profile",
+          code: "PLAYER_CREATION_FAILED",
+        });
       }
     }
-    
+
     // Generate unique versus ID
     let versusId;
     let attempts = 0;
@@ -122,7 +97,7 @@ export const createVersusPartyController = async (req, res) => {
       start_time: startDate,
       end_time: endDate,
       winning_amount: processedValues.winning_amount,
-      participants: [player._id], // Storing Player reference
+      participants: [player._id],
       current_players: 1,
       active: true,
     });
@@ -142,11 +117,10 @@ export const createVersusPartyController = async (req, res) => {
         },
         players: `${1}/2`,
       },
-      player_auto_registered: player && !player.createdAt, // Indicate if player was auto-registered
+      player_auto_registered: !player.createdAt,
     });
   } catch (error) {
     console.error("Versus creation error:", error);
-
     const response = {
       error: "Failed to create versus game",
       code: "CREATION_FAILED",
