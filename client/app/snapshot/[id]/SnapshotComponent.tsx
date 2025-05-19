@@ -490,16 +490,40 @@ export default function SnapshotComponent() {
           pauseOnHover
           theme="dark"
         />
+
         {compStatus.status === "finished" && (
           <div className="bg-red-500 text-white text-center rounded-xl py-4 text-xl font-semibold">
             Competition has finished 🏁
           </div>
         )}
-        {compStatus.status === "not_started" && compStatus.countdown && (
-          <div className="bg-yellow-400 text-black text-center rounded-xl py-4 text-xl font-semibold">
-            Starts in {compStatus.countdown} ⏳
-          </div>
+
+        {compStatus.status === "not_started" && (
+          <>
+            {playerRegistrationStatus === "registered" ? (
+              <div className="bg-green-500 text-white text-center rounded-xl py-4 text-xl font-semibold">
+                Good luck! You are already joined{" "}
+                {compStatus.countdown && (
+                  <span className="text-white text-lg font-normal ml-2">
+                    ({compStatus.countdown} left)
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div
+                onClick={handleRegisterButton}
+                className="bg-blue-500 text-white text-center rounded-xl py-4 text-xl font-semibold cursor-pointer hover:bg-blue-600 transition-colors"
+              >
+                Join Competition{" "}
+                {compStatus.countdown && (
+                  <span className="text-black text-lg font-normal ml-2">
+                    ({compStatus.countdown} left)
+                  </span>
+                )}
+              </div>
+            )}
+          </>
         )}
+
         {compStatus.status === "started" && (
           <>
             {playerRegistrationStatus === "loading" && (
@@ -516,11 +540,8 @@ export default function SnapshotComponent() {
               </div>
             )}
             {playerRegistrationStatus === "not_registered" && (
-              <div
-                onClick={handleRegisterButton}
-                className="bg-blue-500 text-white text-center rounded-xl py-4 text-xl font-semibold cursor-pointer hover:bg-blue-600 transition-colors"
-              >
-                Register to Join 📝
+              <div className="bg-red-500 text-white text-center rounded-xl py-4 text-xl font-semibold">
+                Game has started 🚫
               </div>
             )}
             {playerRegistrationStatus === "party_full" && (
@@ -530,6 +551,7 @@ export default function SnapshotComponent() {
             )}
           </>
         )}
+
         {compStatus.status === "loading" && (
           <div className="bg-gray-500 text-white text-center rounded-xl py-4 text-xl font-semibold">
             Loading competition data...
