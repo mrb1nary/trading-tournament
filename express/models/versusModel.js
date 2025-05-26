@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { scheduleVersusSnapshots } from "../services/schedulerService.js"; // Add this import
 
 const VersusSchema = new mongoose.Schema(
   {
@@ -17,7 +18,6 @@ const VersusSchema = new mongoose.Schema(
       default: true,
       validate: {
         validator: function (v) {
-          // Only allow deactivation after end_time
           return v === true || (this.end_time && this.end_time < new Date());
         },
         message: "Competition can only be deactivated after end time",
@@ -52,7 +52,7 @@ const VersusSchema = new mongoose.Schema(
       required: true,
       min: 0.01,
       max: 100,
-      set: (v) => Number(v.toFixed(2)), // Monetary precision
+      set: (v) => Number(v.toFixed(2)),
     },
     base_amount: {
       type: Number,
@@ -113,7 +113,6 @@ const VersusSchema = new mongoose.Schema(
       ],
       validate: {
         validator: function (arr) {
-          // Ensure no duplicate players
           return new Set(arr.map((id) => id.toString())).size === arr.length;
         },
         message: "Duplicate players in competition",
@@ -125,17 +124,30 @@ const VersusSchema = new mongoose.Schema(
   }
 );
 
-// Indexes for efficient queries
+// Indexes
 VersusSchema.index({ start_time: 1, end_time: 1 });
 VersusSchema.index({ category: 1, winning_amount: 1 });
 VersusSchema.index({ participants: 1 });
 VersusSchema.index({ active: 1, end_time: 1 });
 VersusSchema.index({ current_players: 1, max_players: 1 });
 
-// Pre-save hook to auto-deactivate after end_time
+// Pre-save hook
 VersusSchema.pre("save", function (next) {
   if (this.end_time && this.end_time < new Date()) {
     this.active = false;
+  }
+  next();
+});
+
+// Post-save hook for automatic scheduling
+VersusSchema.post("save", async function (doc, next) {
+  if (doc.isNew) {
+    try {
+      await scheduleVersusSnapshots(doc);
+      console.log(`🎯 New versus game scheduled: ${doc._id}`);
+    } catch (error) {
+      console.error("Failed to schedule versus game snapshots:", error);
+    }
   }
   next();
 });

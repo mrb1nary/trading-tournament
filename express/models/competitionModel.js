@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { scheduleCompetitionSnapshots } from "../services/schedulerService.js";
 
 const CompetitionSchema = new mongoose.Schema(
   {
@@ -164,6 +165,19 @@ CompetitionSchema.pre("save", function (next) {
 
   // Versioning for optimistic concurrency
   this.version++;
+  next();
+});
+
+// Post-save Hook for Scheduling
+CompetitionSchema.post("save", async function (doc, next) {
+  if (doc.isNew) {
+    try {
+      await scheduleCompetitionSnapshots(doc);
+      console.log(`🎯 New competition scheduled: ${doc._id}`);
+    } catch (error) {
+      console.error("Failed to schedule new competition:", error);
+    }
+  }
   next();
 });
 
